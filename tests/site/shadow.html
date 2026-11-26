@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><title>Shadow</title><body><h1>Shadow &amp; frames</h1>
+<my-card id="card"></my-card>
+<iframe id="fr" src="/frame.html" width="400" height="160"></iframe>
+<div id="res"></div>
+<script>
+customElements.define('my-card',class extends HTMLElement{constructor(){super();var r=this.attachShadow({mode:'open'});
+ r.innerHTML='<input id="si" placeholder="in shadow"><button id="sb">Shadow Button</button>';
+ r.getElementById('sb').onclick=function(){window.__sb=(window.__sb||0)+1}}});
+</script></body>

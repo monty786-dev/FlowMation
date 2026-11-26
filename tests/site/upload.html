@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>Upload</title><body>
+<input type="file" id="plain" multiple>
+<button id="btn" onclick="document.getElementById('hidden').click()">Choose file</button><input type="file" id="hidden" style="display:none" accept=".txt">
+<div class="uploader"><label class="fake" for="lab" id="fakelabel">Pick a photo</label><input type="file" id="lab" style="opacity:0;position:absolute;width:1px;height:1px"></div>
+<div id="drop" style="width:220px;height:70px;border:2px dashed #888">Drop with input<input type="file" id="indrop" style="display:none"></div>
+<div id="zone2" style="width:220px;height:70px;border:2px dashed #888">Drop zone (no input)</div>
+<div id="result"></div>
+<script>
+function rep(src,files){document.getElementById('result').textContent+=src+':'+[].map.call(files,function(f){return f.name+'/'+f.size+'/'+f.type}).join(',')+';'}
+['plain','hidden','lab','indrop'].forEach(function(id){document.getElementById(id).onchange=function(e){rep(id,e.target.files)}});
+var z=document.getElementById('zone2');z.ondragover=function(e){e.preventDefault()};z.ondrop=function(e){e.preventDefault();rep('zone2',e.dataTransfer.files)};
+</script></body>

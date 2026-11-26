@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Form</title>
+<style>body{font-family:sans-serif} label{display:inline-block;margin:4px} #overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9}</style></head><body>
+<h1>Sign up</h1>
+<form id="f" onsubmit="event.preventDefault(); window.__submitted=(window.__submitted||0)+1; document.getElementById('out').textContent=JSON.stringify(state())">
+ <div><label for="fn">First name</label><input id="fn" name="first_name" type="text"></div>
+ <div><label>Email <input type="email" name="email" placeholder="you@example.com"></label></div>
+ <div><label for="pw">Password</label><input id="pw" type="password"></div>
+ <div><textarea name="bio" aria-label="Biography"></textarea></div>
+ <div><label for="country">Country</label><select id="country" name="country"><option value="">--</option><option value="us">United States</option><option value="in">India</option><option value="de">Germany</option></select></div>
+ <div><select id="multi" multiple><option>a</option><option>b</option><option>c</option></select></div>
+ <div><input type="checkbox" id="agree" name="agree"><label for="agree">I agree to terms</label>
+      <input type="checkbox" id="news" name="news" checked><label for="news">Newsletter</label></div>
+ <fieldset><legend>Plan</legend><label><input type="radio" name="plan" value="free"> Free</label> <label><input type="radio" name="plan" value="pro"> Pro</label></fieldset>
+ <div><input type="range" id="vol" min="0" max="10" step="2" value="4"></div>
+ <div><label for="dob">Date of birth</label><input type="date" id="dob" name="dob"> <input type="time" id="tm" aria-label="Alarm time"> <input type="number" id="age" name="age" aria-label="Age"></div>
+ <div><input list="cities" id="city" name="city" placeholder="City"><datalist id="cities"><option value="Paris"><option value="Pune"></datalist></div>
+ <div id="rte" contenteditable="true" role="textbox" aria-label="Notes" style="border:1px solid #888;min-height:24px;width:300px"></div>
+ <button type="submit" id="go">Send</button>
+</form>
+<button id="late" onclick="window.__late=(window.__late||0)+1">Late button</button>
+<div id="overlay"></div>
+<div id="slot"></div>
+<div id="out"></div>
+<input id="keys" placeholder="keys" onkeydown="window.__keys=(window.__keys||[]).concat(event.key)">
+<script>
+setTimeout(function(){document.getElementById('overlay').remove()},1200);
+setTimeout(function(){var b=document.createElement('button');b.id='appear';b.textContent='Appeared';b.onclick=function(){window.__appear=1};document.getElementById('slot').appendChild(b)},800);
+function val(id){return document.getElementById(id).value}
+function state(){var f=document.getElementById('f');var r=document.querySelector('input[name=plan]:checked');
+ return {first:val('fn'),email:f.email.value,pw:val('pw'),bio:f.bio.value,country:val('country'),multi:[].map.call(document.getElementById('multi').selectedOptions,function(o){return o.text}),
+  agree:f.agree.checked,news:f.news.checked,plan:r?r.value:null,vol:val('vol'),dob:val('dob'),tm:val('tm'),age:val('age'),city:val('city'),rte:document.getElementById('rte').textContent}}
+</script></body></html>

@@ -1,1 +1,14 @@
-
+<!doctype html><meta charset="utf-8"><title>DnD</title><body style="margin:0">
+<div id="card" draggable="true" style="width:80px;height:40px;background:#e95420;color:#fff">Card</div>
+<div id="zone" style="margin-top:60px;width:200px;height:80px;border:2px dashed #888">Drop here</div>
+<div id="box" style="position:absolute;left:20px;top:200px;width:60px;height:30px;background:#77216f;color:#fff;user-select:none">Drag</div>
+<div id="pos"></div><div id="res"></div>
+<script>
+var card=document.getElementById('card'),zone=document.getElementById('zone');
+card.ondragstart=function(e){e.dataTransfer.setData('text/plain','card')};
+zone.ondragover=function(e){e.preventDefault()};zone.ondrop=function(e){e.preventDefault();document.getElementById('res').textContent='dropped:'+e.dataTransfer.getData('text/plain')};
+var box=document.getElementById('box'),down=null;
+box.onmousedown=function(e){down={x:e.clientX,y:e.clientY,l:box.offsetLeft,t:box.offsetTop}};
+document.onmousemove=function(e){if(down){box.style.left=(down.l+e.clientX-down.x)+'px';box.style.top=(down.t+e.clientY-down.y)+'px'}};
+document.onmouseup=function(){if(down){document.getElementById('pos').textContent=box.offsetLeft+','+box.offsetTop;down=null}};
+</script></body>

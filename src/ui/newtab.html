@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New tab</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  body { overflow: auto; display: flex; flex-direction: column; align-items: center; padding-top: 12vh; }
+  h1 { font-weight: 300; font-size: 38px; margin: 0 0 4px; letter-spacing: -.5px; }
+  h1 b { color: var(--orange); font-weight: 700; }
+  p.sub { color: var(--muted); margin: 0 0 26px; }
+  form { width: min(620px, 90vw); display: flex; }
+  form input { border-radius: 22px 0 0 22px; padding: 11px 18px; font-size: 15px; }
+  form button { border-radius: 0 22px 22px 0; padding: 0 22px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; width: min(860px, 92vw); margin-top: 44px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 14px; } .card h3 span { color: var(--orange); }
+  .card p { margin: 0; color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<h1>Flow<b>Browser</b></h1>
+<p class="sub">Browse. Record. Automate.</p>
+<form id="f"><input type="text" id="q" placeholder="Search or enter address" autofocus autocomplete="off"><button class="btn primary">Go</button></form>
+<div class="cards">
+  <div class="card"><h3><span>⏺</span> Record a task</h3><p>Press <b>Record</b>, work on any website, then edit the recorded steps in the Studio panel.</p></div>
+  <div class="card"><h3><span>🎯</span> Pick data</h3><p>Click any element. FlowBrowser groups similar items and tables so you can extract them.</p></div>
+  <div class="card"><h3><span>📊</span> Excel in, Excel out</h3><p>Fill forms from Excel rows and write extracted tables to a sheet or a given cell range.</p></div>
+  <div class="card"><h3><span>🤖</span> CAPTCHAs</h3><p>When a flow meets one it pauses so you can solve it, then carries on.</p></div>
+</div>
+<script>
+  var cfg = {}; try { cfg = JSON.parse(localStorage.getItem('fbSettings') || '{}'); } catch (e) {}
+  document.documentElement.setAttribute('data-theme', cfg.theme || 'light');
+  document.getElementById('f').onsubmit = function (e) {
+    e.preventDefault();
+    var t = document.getElementById('q').value.trim(); if (!t) return;
+    var u;
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t)) u = t;
+    else if (!/\s/.test(t) && /^[^\/?#]+\.[a-z]{2,}(:\d+)?([\/?#].*)?$/i.test(t)) u = 'https://' + t;
+    else u = (cfg.search || 'https://duckduckgo.com/?q=%s').replace('%s', encodeURIComponent(t));
+    location.href = u;
+  };
+</script>
+</body>
+</html>

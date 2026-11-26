@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FlowBrowser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="app.css">
+<style>
+  body { display: flex; flex-direction: column; }
+  #tabbar { display: flex; align-items: flex-end; background: var(--head); padding: 6px 6px 0; gap: 2px; min-height: 38px; user-select: none; }
+  #tabs { display: flex; gap: 2px; min-width: 0; flex: 0 1 auto; overflow: hidden; }
+  .tab { display: flex; align-items: center; gap: 6px; padding: 0 8px 0 10px; height: 31px; min-width: 44px; max-width: 220px; flex: 1 1 180px;
+    background: var(--tab); color: var(--head-text); border-radius: 8px 8px 0 0; cursor: default; position: relative; opacity: .85; }
+  .tab:hover { opacity: 1; }
+  .tab.on { background: var(--tab-on); color: var(--text); opacity: 1; box-shadow: inset 0 3px 0 var(--orange); }
+  .tab .fav { width: 16px; height: 16px; flex: none; border-radius: 3px; background: var(--warm); color: #fff; font-size: 10px; text-align: center; line-height: 16px; overflow: hidden; }
+  .tab .fav img { width: 16px; height: 16px; display: block; }
+  .tab .ttl { flex: 1; min-width: 0; font-size: 12.5px; }
+  .tab .x { border: 0; background: none; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; line-height: 16px; color: inherit; padding: 0; }
+  .tab .x:hover { background: var(--orange); color: #fff; }
+  .tab.loading .fav { animation: spin 1s linear infinite; background: var(--orange); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #newtab { margin: 0 0 4px 4px; color: var(--head-text); }
+  #toolbar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: var(--tab-on); border-bottom: 1px solid var(--border); }
+  #toolbar .btn.flat { color: var(--text); font-size: 15px; }
+  #addr { display: flex; align-items: center; flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 0 8px; min-height: 30px; }
+  #addr:focus-within { border-color: var(--orange); box-shadow: 0 0 0 2px var(--sel); }
+  #addr input { border: 0; box-shadow: none !important; background: transparent; min-height: 26px; padding: 0 6px; }
+  #addr .lock { color: var(--muted); font-size: 12px; }
+  #addr .star { cursor: pointer; border: 0; background: none; font-size: 15px; color: var(--muted); }
+  #addr .star.on { color: var(--orange); }
+  .autobtn { font-size: 13px !important; padding: 4px 10px !important; }
+  .autobtn.rec.on { background: var(--err); color: #fff; border-color: var(--err); }
+  #bmbar { display: flex; gap: 4px; padding: 2px 8px; background: var(--tab-on); border-bottom: 1px solid var(--border); overflow: hidden; min-height: 28px; align-items: center; }
+  #bmbar .btn { max-width: 170px; }
+  #findbar { display: flex; gap: 6px; align-items: center; padding: 4px 10px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  #findbar input[type=text] { width: 240px; }
+  #banner { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #FFF3CD; color: #3A2E00; border-bottom: 2px solid var(--warn); }
+  :root[data-theme="dark"] #banner, :root[data-theme="aubergine"] #banner { background: #4B3C00; color: #FFEFB0; }
+  #banner .msg { flex: 1; font-weight: 600; }
+  #main { flex: 1; display: flex; min-height: 0; }
+  #content { flex: 1; min-width: 120px; background: var(--surface2); position: relative; }
+  #content .hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  #split { width: 6px; cursor: col-resize; background: var(--border); flex: none; }
+  #split:hover, #split.drag { background: var(--orange); }
+  #panelslot { width: 460px; background: var(--bg); flex: none; min-width: 300px; max-width: 80vw; }
+  #status { display: flex; align-items: center; gap: 12px; padding: 2px 10px; min-height: 24px; background: var(--head); color: var(--head-text); font-size: 12px; }
+  #status .run { font-weight: 700; }
+  #status .run.running { color: var(--orange-d); }
+  #menu { position: fixed; top: 74px; right: 8px; width: 290px; background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; box-shadow: var(--shadow); padding: 4px 0; z-index: 8000; }
+  #menu .it { display: flex; align-items: center; gap: 10px; padding: 6px 14px; cursor: pointer; }
+  #menu .it:hover { background: var(--sel); }
+  #menu .it .k { margin-left: auto; color: var(--muted); font-size: 11px; }
+  #menu .ico { width: 18px; text-align: center; }
+  #menu .zoomrow { display: flex; align-items: center; gap: 6px; padding: 4px 14px; }
+  #menu .sep { margin: 4px 0; }
+  .lst { max-height: 55vh; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+  .lst .li { display: flex; gap: 8px; padding: 5px 9px; border-bottom: 1px solid var(--border); align-items: center; cursor: pointer; }
+  .lst .li:hover { background: var(--sel); }
+</style>
+</head>
+<body>
+<div id="tabbar"><div id="tabs"></div><button class="btn flat icon" id="newtab" title="New tab (Ctrl+T)">＋</button></div>
+<div id="toolbar">
+  <button class="btn flat icon" id="back" title="Back (Alt+←)">◀</button>
+  <button class="btn flat icon" id="fwd" title="Forward (Alt+→)">▶</button>
+  <button class="btn flat icon" id="reload" title="Reload (F5)">⟳</button>
+  <button class="btn flat icon" id="home" title="Home">⌂</button>
+  <div id="addr"><span class="lock" id="lock">🛈</span><input type="text" id="url" spellcheck="false" placeholder="Search or enter address" autocomplete="off"><button class="star" id="star" title="Bookmark this page (Ctrl+D)">☆</button></div>
+  <button class="btn autobtn rec" id="rec" title="Record the steps you do on the page (Ctrl+Shift+R)">⏺ Record</button>
+  <button class="btn autobtn" id="pick" title="Pick elements on the page">🎯 Pick</button>
+  <button class="btn autobtn primary" id="run" title="Run the current flow (F9)">▶ Run</button>
+  <button class="btn flat icon" id="ptoggle" title="Show / hide the Studio panel (F8)">◧</button>
+  <button class="btn flat icon" id="menubtn" title="Menu">⋮</button>
+</div>
+<div id="bmbar" class="hide"></div>
+<div id="findbar" class="hide">
+  <input type="text" id="ftext" placeholder="Find in page"> <button class="btn sm" id="fprev">▲</button><button class="btn sm" id="fnext">▼</button>
+  <label class="chk small"><input type="checkbox" id="fcase"> Match case</label><span class="grow"></span><button class="btn sm flat" id="fclose">✕</button>
+</div>
+<div id="banner" class="hide"><span>🤖</span><span class="msg" id="bmsg"></span><input type="text" id="binp" class="hide" style="width:220px"><button class="btn primary" id="bok">Continue</button><button class="btn" id="bstop">Stop the flow</button></div>
+<div id="main">
+  <div id="content"><div class="hint" id="chint"></div></div>
+  <div id="split" class="hide" title="Drag to resize"></div>
+  <div id="panelslot" class="hide"></div>
+</div>
+<div id="status"><span class="run" id="srun">Ready</span><span class="grow ell" id="sstep"></span><span id="szoom"></span><span id="sload"></span></div>
+<div id="menu" class="hide"></div>
+<script src="common.js"></script>
+<script src="shell.js"></script>
+</body>
+</html>

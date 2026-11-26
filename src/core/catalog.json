@@ -1,0 +1,1748 @@
+{
+  "version": 1,
+  "common": [
+    {
+      "name": "name",
+      "kind": "text",
+      "label": "Step name"
+    },
+    {
+      "name": "enabled",
+      "kind": "bool",
+      "label": "Enabled",
+      "default": true
+    },
+    {
+      "name": "on_error",
+      "kind": "enum",
+      "label": "If this step fails",
+      "options": [
+        "inherit",
+        "stop",
+        "continue",
+        "retry"
+      ],
+      "default": "inherit"
+    },
+    {
+      "name": "retries",
+      "kind": "number",
+      "label": "Retries",
+      "default": 2
+    },
+    {
+      "name": "retry_delay_ms",
+      "kind": "number",
+      "label": "Retry delay (ms)",
+      "default": 1000
+    },
+    {
+      "name": "timeout_ms",
+      "kind": "number",
+      "label": "Timeout (ms)"
+    },
+    {
+      "name": "comment",
+      "kind": "longtext",
+      "label": "Notes"
+    }
+  ],
+  "steps": [
+    {
+      "type": "navigate",
+      "cat": "Browser",
+      "label": "Go to URL",
+      "icon": "🌐",
+      "desc": "Open a web address in the current tab",
+      "params": [
+        {
+          "name": "url",
+          "kind": "url",
+          "label": "URL",
+          "required": true
+        },
+        {
+          "name": "wait",
+          "kind": "bool",
+          "label": "Wait for page load",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "new_tab",
+      "cat": "Browser",
+      "label": "New tab",
+      "icon": "➕",
+      "desc": "Open a new tab (optionally at a URL)",
+      "params": [
+        {
+          "name": "url",
+          "kind": "url",
+          "label": "URL"
+        }
+      ]
+    },
+    {
+      "type": "switch_tab",
+      "cat": "Browser",
+      "label": "Switch tab",
+      "icon": "🗂",
+      "desc": "Activate another tab by number (1 = first) or title",
+      "params": [
+        {
+          "name": "tab",
+          "kind": "text",
+          "label": "Tab number or title contains",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "close_tab",
+      "cat": "Browser",
+      "label": "Close tab",
+      "icon": "✖",
+      "desc": "Close the current tab",
+      "params": []
+    },
+    {
+      "type": "back",
+      "cat": "Browser",
+      "label": "Go back",
+      "icon": "◀",
+      "desc": "Browser back",
+      "params": []
+    },
+    {
+      "type": "forward",
+      "cat": "Browser",
+      "label": "Go forward",
+      "icon": "▶",
+      "desc": "Browser forward",
+      "params": []
+    },
+    {
+      "type": "reload",
+      "cat": "Browser",
+      "label": "Reload page",
+      "icon": "⟳",
+      "desc": "Reload the current page",
+      "params": []
+    },
+    {
+      "type": "handle_dialog",
+      "cat": "Browser",
+      "label": "Alert / confirm dialogs",
+      "icon": "💬",
+      "desc": "How JavaScript alert/confirm/prompt dialogs are answered from now on",
+      "params": [
+        {
+          "name": "action",
+          "kind": "enum",
+          "label": "Answer",
+          "options": [
+            "accept",
+            "dismiss",
+            "manual"
+          ],
+          "default": "accept"
+        }
+      ]
+    },
+    {
+      "type": "clear_browsing_data",
+      "cat": "Browser",
+      "label": "Clear cookies / cache",
+      "icon": "🧹",
+      "desc": "Delete cookies and/or cache",
+      "params": [
+        {
+          "name": "what",
+          "kind": "enum",
+          "label": "What",
+          "options": [
+            "cookies",
+            "cache",
+            "both"
+          ],
+          "default": "both"
+        }
+      ]
+    },
+    {
+      "type": "set_user_agent",
+      "cat": "Browser",
+      "label": "Set user agent",
+      "icon": "🪪",
+      "desc": "Override the browser's User-Agent string",
+      "params": [
+        {
+          "name": "user_agent",
+          "kind": "text",
+          "label": "User agent",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "click",
+      "cat": "Interaction",
+      "label": "Click",
+      "icon": "🖱",
+      "desc": "Click a button, link or any element with a real mouse click",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element",
+          "required": true
+        },
+        {
+          "name": "button",
+          "kind": "enum",
+          "label": "Mouse button",
+          "options": [
+            "left",
+            "right",
+            "middle"
+          ],
+          "default": "left"
+        },
+        {
+          "name": "count",
+          "kind": "number",
+          "label": "Number of clicks (2 = double click)",
+          "default": 1
+        },
+        {
+          "name": "method",
+          "kind": "enum",
+          "label": "Method",
+          "options": [
+            "mouse",
+            "js"
+          ],
+          "default": "mouse"
+        },
+        {
+          "name": "after",
+          "kind": "enum",
+          "label": "After clicking wait for",
+          "options": [
+            "auto",
+            "none",
+            "navigation"
+          ],
+          "default": "auto"
+        },
+        {
+          "name": "force",
+          "kind": "bool",
+          "label": "Click even if covered / not visible",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "hover",
+      "cat": "Interaction",
+      "label": "Hover",
+      "icon": "👆",
+      "desc": "Move the mouse over an element (opens hover menus)",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "fill",
+      "cat": "Interaction",
+      "label": "Fill field",
+      "icon": "✍",
+      "desc": "Fill any input: text, textarea, dropdown, checkbox, radio, slider, date, editable div. The type is detected automatically",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Field",
+          "required": true
+        },
+        {
+          "name": "value",
+          "kind": "text",
+          "label": "Value",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "Mode",
+          "options": [
+            "auto",
+            "type"
+          ],
+          "default": "auto"
+        }
+      ]
+    },
+    {
+      "type": "type_text",
+      "cat": "Interaction",
+      "label": "Type text (keystrokes)",
+      "icon": "⌨",
+      "desc": "Type into a field with real keystrokes, optionally slowly like a human",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Field",
+          "required": true
+        },
+        {
+          "name": "text",
+          "kind": "text",
+          "label": "Text",
+          "required": true
+        },
+        {
+          "name": "clear",
+          "kind": "bool",
+          "label": "Clear field first",
+          "default": true
+        },
+        {
+          "name": "delay_ms",
+          "kind": "number",
+          "label": "Delay between keys (ms)",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "type": "press_key",
+      "cat": "Interaction",
+      "label": "Press key",
+      "icon": "↵",
+      "desc": "Press a key or shortcut: Enter, Tab, Escape, Ctrl+A, Shift+Tab ...",
+      "params": [
+        {
+          "name": "key",
+          "kind": "text",
+          "label": "Key",
+          "required": true
+        },
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Focus this element first (optional)"
+        },
+        {
+          "name": "times",
+          "kind": "number",
+          "label": "Repeat",
+          "default": 1
+        }
+      ]
+    },
+    {
+      "type": "select_option",
+      "cat": "Interaction",
+      "label": "Select from dropdown",
+      "icon": "🔽",
+      "desc": "Choose option(s) in a dropdown, combo box or list box. Separate several values with |",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Dropdown",
+          "required": true
+        },
+        {
+          "name": "value",
+          "kind": "text",
+          "label": "Option (text, value or number)",
+          "required": true
+        },
+        {
+          "name": "by",
+          "kind": "enum",
+          "label": "Match by",
+          "options": [
+            "auto",
+            "text",
+            "value",
+            "index"
+          ],
+          "default": "auto"
+        }
+      ]
+    },
+    {
+      "type": "check",
+      "cat": "Interaction",
+      "label": "Check / uncheck",
+      "icon": "☑",
+      "desc": "Set a checkbox, radio button or toggle switch",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Checkbox / radio",
+          "required": true
+        },
+        {
+          "name": "state",
+          "kind": "enum",
+          "label": "State",
+          "options": [
+            "check",
+            "uncheck",
+            "toggle"
+          ],
+          "default": "check"
+        }
+      ]
+    },
+    {
+      "type": "set_slider",
+      "cat": "Interaction",
+      "label": "Set slider",
+      "icon": "🎚",
+      "desc": "Set a range slider / adjustment bar to a value",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Slider",
+          "required": true
+        },
+        {
+          "name": "value",
+          "kind": "text",
+          "label": "Value",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "upload_file",
+      "cat": "Interaction",
+      "label": "Upload file(s)",
+      "icon": "📎",
+      "desc": "Choose / select / drag-and-drop file(s) into a file field, an Upload button or a drop zone",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "File field / button / drop zone",
+          "required": true
+        },
+        {
+          "name": "files",
+          "kind": "files",
+          "label": "File path(s)",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "How",
+          "options": [
+            "auto",
+            "input",
+            "dialog",
+            "drop"
+          ],
+          "default": "auto"
+        }
+      ]
+    },
+    {
+      "type": "drag_drop",
+      "cat": "Interaction",
+      "label": "Drag and drop",
+      "icon": "🧲",
+      "desc": "Drag one element onto another",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Drag this",
+          "required": true
+        },
+        {
+          "name": "target",
+          "kind": "selector",
+          "label": "Drop on",
+          "required": true
+        },
+        {
+          "name": "method",
+          "kind": "enum",
+          "label": "Method",
+          "options": [
+            "mouse",
+            "html5"
+          ],
+          "default": "mouse"
+        }
+      ]
+    },
+    {
+      "type": "scroll",
+      "cat": "Interaction",
+      "label": "Scroll",
+      "icon": "↕",
+      "desc": "Scroll the page or an element into view",
+      "params": [
+        {
+          "name": "to",
+          "kind": "enum",
+          "label": "Scroll",
+          "options": [
+            "element",
+            "top",
+            "bottom",
+            "by"
+          ],
+          "default": "bottom"
+        },
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element (for 'element')"
+        },
+        {
+          "name": "amount",
+          "kind": "number",
+          "label": "Pixels (for 'by')",
+          "default": 500
+        }
+      ]
+    },
+    {
+      "type": "focus",
+      "cat": "Interaction",
+      "label": "Focus element",
+      "icon": "🎯",
+      "desc": "Give an element keyboard focus",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "submit_form",
+      "cat": "Interaction",
+      "label": "Submit form",
+      "icon": "📨",
+      "desc": "Submit the form that contains an element",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Any element inside the form",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "autofill_form",
+      "cat": "Interaction",
+      "label": "Auto-fill form from data",
+      "icon": "🪄",
+      "desc": "Detect every field of a form and fill it from the current Excel row / object by matching column names to field labels",
+      "params": [
+        {
+          "name": "data",
+          "kind": "var",
+          "label": "Data (variable holding the row)",
+          "default": "row"
+        },
+        {
+          "name": "root",
+          "kind": "selector",
+          "label": "Form (optional, default: whole page)"
+        },
+        {
+          "name": "mapping",
+          "kind": "kv",
+          "label": "Manual mapping: field label/name -> value"
+        },
+        {
+          "name": "submit",
+          "kind": "bool",
+          "label": "Submit afterwards",
+          "default": false
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save report in variable"
+        }
+      ]
+    },
+    {
+      "type": "run_js",
+      "cat": "Interaction",
+      "label": "Run JavaScript",
+      "icon": "⚡",
+      "desc": "Run JavaScript in the page; the value of the last expression (or a returned value) is stored",
+      "params": [
+        {
+          "name": "code",
+          "kind": "code",
+          "label": "JavaScript",
+          "required": true,
+          "raw": true
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save result in variable"
+        }
+      ]
+    },
+    {
+      "type": "get_text",
+      "cat": "Extract",
+      "label": "Get text / value",
+      "icon": "🔎",
+      "desc": "Read the text, value or HTML of an element",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element",
+          "required": true
+        },
+        {
+          "name": "what",
+          "kind": "enum",
+          "label": "Read",
+          "options": [
+            "text",
+            "value",
+            "html",
+            "outerhtml",
+            "checked",
+            "selected",
+            "href",
+            "src"
+          ],
+          "default": "text"
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "get_attribute",
+      "cat": "Extract",
+      "label": "Get attribute",
+      "icon": "🏷",
+      "desc": "Read an attribute such as href, src, data-id",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element",
+          "required": true
+        },
+        {
+          "name": "attribute",
+          "kind": "text",
+          "label": "Attribute",
+          "required": true
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "element_exists",
+      "cat": "Extract",
+      "label": "Element exists?",
+      "icon": "❓",
+      "desc": "Store true/false depending on whether an element is on the page",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element",
+          "required": true
+        },
+        {
+          "name": "visible_only",
+          "kind": "bool",
+          "label": "Only if visible",
+          "default": false
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "count_elements",
+      "cat": "Extract",
+      "label": "Count elements",
+      "icon": "🔢",
+      "desc": "Count how many elements match",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Elements",
+          "required": true
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "extract_table",
+      "cat": "Extract",
+      "label": "Extract table",
+      "icon": "▦",
+      "desc": "Read an HTML table (or grid) into a table variable",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Table",
+          "required": true
+        },
+        {
+          "name": "headers",
+          "kind": "enum",
+          "label": "Column names",
+          "options": [
+            "auto",
+            "first_row",
+            "none"
+          ],
+          "default": "auto"
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "extract_list",
+      "cat": "Extract",
+      "label": "Extract repeated items",
+      "icon": "☰",
+      "desc": "Extract a list of similar items (products, search results, cards) with several fields each; supports pagination and infinite scroll",
+      "params": [
+        {
+          "name": "item_selector",
+          "kind": "selector",
+          "label": "One item (repeats)",
+          "required": true
+        },
+        {
+          "name": "fields",
+          "kind": "fields",
+          "label": "Fields to read from each item",
+          "required": true
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        },
+        {
+          "name": "append",
+          "kind": "bool",
+          "label": "Add to existing table",
+          "default": false
+        },
+        {
+          "name": "next_selector",
+          "kind": "selector",
+          "label": "'Next page' button (optional)"
+        },
+        {
+          "name": "max_pages",
+          "kind": "number",
+          "label": "Max pages",
+          "default": 1
+        },
+        {
+          "name": "page_wait_ms",
+          "kind": "number",
+          "label": "Wait after next page (ms)",
+          "default": 800
+        },
+        {
+          "name": "scroll_load",
+          "kind": "bool",
+          "label": "Scroll to load more (infinite scroll)",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "extract_page",
+      "cat": "Extract",
+      "label": "Scan whole page",
+      "icon": "🗺",
+      "desc": "Extract everything, grouped by category: headings, links, images, tables, lists, buttons, inputs, forms, text, meta",
+      "params": [
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        },
+        {
+          "name": "kinds",
+          "kind": "list",
+          "label": "Categories (empty = all)"
+        }
+      ]
+    },
+    {
+      "type": "screenshot",
+      "cat": "Extract",
+      "label": "Screenshot",
+      "icon": "📷",
+      "desc": "Save a screenshot of the page or an element as PNG",
+      "params": [
+        {
+          "name": "path",
+          "kind": "file_save",
+          "label": "Save as (.png)",
+          "required": true
+        },
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element (optional)"
+        },
+        {
+          "name": "full_page",
+          "kind": "bool",
+          "label": "Whole page",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "wait_seconds",
+      "cat": "Wait",
+      "label": "Wait (seconds)",
+      "icon": "⏱",
+      "desc": "Pause for a number of seconds",
+      "params": [
+        {
+          "name": "seconds",
+          "kind": "number",
+          "label": "Seconds",
+          "required": true,
+          "default": 1
+        }
+      ]
+    },
+    {
+      "type": "wait_element",
+      "cat": "Wait",
+      "label": "Wait for element",
+      "icon": "⏳",
+      "desc": "Wait until an element appears, disappears, or becomes visible/hidden",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "selector",
+          "label": "Element",
+          "required": true
+        },
+        {
+          "name": "state",
+          "kind": "enum",
+          "label": "Until it is",
+          "options": [
+            "visible",
+            "hidden",
+            "attached",
+            "detached"
+          ],
+          "default": "visible"
+        }
+      ]
+    },
+    {
+      "type": "wait_text",
+      "cat": "Wait",
+      "label": "Wait for text",
+      "icon": "🔤",
+      "desc": "Wait until some text appears on the page (or disappears)",
+      "params": [
+        {
+          "name": "text",
+          "kind": "text",
+          "label": "Text",
+          "required": true
+        },
+        {
+          "name": "gone",
+          "kind": "bool",
+          "label": "Wait until it is gone",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "wait_navigation",
+      "cat": "Wait",
+      "label": "Wait for page load",
+      "icon": "⌛",
+      "desc": "Wait until the next page load finishes",
+      "params": []
+    },
+    {
+      "type": "wait_until",
+      "cat": "Wait",
+      "label": "Wait until condition",
+      "icon": "🧭",
+      "desc": "Re-check a condition until it is true. {{page.url}}, {{page.title}} and {{page.text}} are refreshed before every check",
+      "params": [
+        {
+          "name": "condition",
+          "kind": "condition",
+          "label": "Condition",
+          "required": true
+        },
+        {
+          "name": "interval_ms",
+          "kind": "number",
+          "label": "Check every (ms)",
+          "default": 1000
+        }
+      ]
+    },
+    {
+      "type": "excel_read",
+      "cat": "Excel & Data",
+      "label": "Read Excel",
+      "icon": "📗",
+      "desc": "Read a sheet (or range) into a table variable, one object per row (columns by header name)",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_open",
+          "label": "Excel file (.xlsx)",
+          "required": true
+        },
+        {
+          "name": "sheet",
+          "kind": "text",
+          "label": "Sheet (empty = first)"
+        },
+        {
+          "name": "range",
+          "kind": "text",
+          "label": "Range, e.g. A1:D50 (empty = all)"
+        },
+        {
+          "name": "header",
+          "kind": "bool",
+          "label": "First row has column names",
+          "default": true
+        },
+        {
+          "name": "skip_empty",
+          "kind": "bool",
+          "label": "Skip empty rows",
+          "default": true
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true,
+          "default": "rows"
+        }
+      ]
+    },
+    {
+      "type": "excel_write_cell",
+      "cat": "Excel & Data",
+      "label": "Write Excel cell",
+      "icon": "📝",
+      "desc": "Write a value into one cell (keeps the workbook's formatting). Values starting with = become formulas",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_save",
+          "label": "Excel file (.xlsx)",
+          "required": true
+        },
+        {
+          "name": "sheet",
+          "kind": "text",
+          "label": "Sheet (created if missing)"
+        },
+        {
+          "name": "cell",
+          "kind": "text",
+          "label": "Cell, e.g. B5 (can use {{row._row}})",
+          "required": true
+        },
+        {
+          "name": "value",
+          "kind": "text",
+          "label": "Value",
+          "required": true
+        },
+        {
+          "name": "value_type",
+          "kind": "enum",
+          "label": "Type",
+          "options": [
+            "auto",
+            "text",
+            "number",
+            "formula"
+          ],
+          "default": "auto"
+        }
+      ]
+    },
+    {
+      "type": "excel_append_row",
+      "cat": "Excel & Data",
+      "label": "Append row to Excel",
+      "icon": "➕",
+      "desc": "Add a row below the last used row of a sheet",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_save",
+          "label": "Excel file (.xlsx)",
+          "required": true
+        },
+        {
+          "name": "sheet",
+          "kind": "text",
+          "label": "Sheet (created if missing)"
+        },
+        {
+          "name": "values",
+          "kind": "list",
+          "label": "Values, one per column"
+        },
+        {
+          "name": "source",
+          "kind": "var",
+          "label": "...or a variable holding one row (object/list)"
+        },
+        {
+          "name": "start_col",
+          "kind": "text",
+          "label": "Start column",
+          "default": "A"
+        }
+      ]
+    },
+    {
+      "type": "excel_write_table",
+      "cat": "Excel & Data",
+      "label": "Write table to Excel",
+      "icon": "📊",
+      "desc": "Write a table variable into a sheet starting at a cell (or appended below existing data)",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_save",
+          "label": "Excel file (.xlsx)",
+          "required": true
+        },
+        {
+          "name": "sheet",
+          "kind": "text",
+          "label": "Sheet (created if missing)"
+        },
+        {
+          "name": "source",
+          "kind": "var",
+          "label": "Table variable",
+          "required": true
+        },
+        {
+          "name": "start_cell",
+          "kind": "text",
+          "label": "Start cell",
+          "default": "A1"
+        },
+        {
+          "name": "headers",
+          "kind": "bool",
+          "label": "Write column names (bold)",
+          "default": true
+        },
+        {
+          "name": "mode",
+          "kind": "enum",
+          "label": "Mode",
+          "options": [
+            "overwrite",
+            "append"
+          ],
+          "default": "overwrite"
+        }
+      ]
+    },
+    {
+      "type": "excel_save",
+      "cat": "Excel & Data",
+      "label": "Save Excel now",
+      "icon": "💾",
+      "desc": "Write pending changes to disk immediately (they are also saved automatically)",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_save",
+          "label": "Excel file (empty = all open files)"
+        }
+      ]
+    },
+    {
+      "type": "csv_read",
+      "cat": "Excel & Data",
+      "label": "Read CSV",
+      "icon": "📄",
+      "desc": "Read a CSV file into a table variable",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_open",
+          "label": "CSV file",
+          "required": true
+        },
+        {
+          "name": "header",
+          "kind": "bool",
+          "label": "First row has column names",
+          "default": true
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true,
+          "default": "rows"
+        }
+      ]
+    },
+    {
+      "type": "csv_write",
+      "cat": "Excel & Data",
+      "label": "Write CSV",
+      "icon": "📄",
+      "desc": "Write a table variable to a CSV file",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_save",
+          "label": "CSV file",
+          "required": true
+        },
+        {
+          "name": "source",
+          "kind": "var",
+          "label": "Table variable",
+          "required": true
+        },
+        {
+          "name": "headers",
+          "kind": "bool",
+          "label": "Write column names",
+          "default": true
+        },
+        {
+          "name": "append",
+          "kind": "bool",
+          "label": "Append to file",
+          "default": false
+        },
+        {
+          "name": "delimiter",
+          "kind": "text",
+          "label": "Delimiter",
+          "default": ","
+        },
+        {
+          "name": "protect_formulas",
+          "kind": "bool",
+          "label": "Stop Excel running cells that start with = + - @",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "json_write",
+      "cat": "Excel & Data",
+      "label": "Write JSON",
+      "icon": "{}",
+      "desc": "Write a variable as a JSON file",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_save",
+          "label": "JSON file",
+          "required": true
+        },
+        {
+          "name": "source",
+          "kind": "var",
+          "label": "Variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "text_write",
+      "cat": "Excel & Data",
+      "label": "Write text file",
+      "icon": "🗒",
+      "desc": "Write or append text to a file",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_save",
+          "label": "File",
+          "required": true
+        },
+        {
+          "name": "text",
+          "kind": "longtext",
+          "label": "Text",
+          "required": true
+        },
+        {
+          "name": "append",
+          "kind": "bool",
+          "label": "Append",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "text_read",
+      "cat": "Excel & Data",
+      "label": "Read text file",
+      "icon": "🗒",
+      "desc": "Read a text file into a variable",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_open",
+          "label": "File",
+          "required": true
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "file_exists",
+      "cat": "Excel & Data",
+      "label": "File exists?",
+      "icon": "📁",
+      "desc": "Store true/false depending on whether a file exists",
+      "params": [
+        {
+          "name": "file",
+          "kind": "file_open",
+          "label": "File",
+          "required": true
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "set_var",
+      "cat": "Variables",
+      "label": "Set variable",
+      "icon": "𝑥",
+      "desc": "Create or change a variable. Use {{other}} and filters like {{name | trim | upper}}",
+      "params": [
+        {
+          "name": "var",
+          "kind": "var",
+          "label": "Variable",
+          "required": true
+        },
+        {
+          "name": "value",
+          "kind": "text",
+          "label": "Value",
+          "required": true
+        },
+        {
+          "name": "value_type",
+          "kind": "enum",
+          "label": "Type",
+          "options": [
+            "auto",
+            "text",
+            "number",
+            "bool",
+            "json"
+          ],
+          "default": "auto"
+        }
+      ]
+    },
+    {
+      "type": "calc",
+      "cat": "Variables",
+      "label": "Calculate",
+      "icon": "∑",
+      "desc": "Math with + - * / % and parentheses, e.g. {{total}} + {{price}} * 2",
+      "params": [
+        {
+          "name": "var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        },
+        {
+          "name": "expression",
+          "kind": "text",
+          "label": "Expression",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "list_add",
+      "cat": "Variables",
+      "label": "Add to list",
+      "icon": "➕",
+      "desc": "Append an item to a list variable (created if missing)",
+      "params": [
+        {
+          "name": "var",
+          "kind": "var",
+          "label": "List variable",
+          "required": true
+        },
+        {
+          "name": "value",
+          "kind": "text",
+          "label": "Item",
+          "required": true
+        },
+        {
+          "name": "value_type",
+          "kind": "enum",
+          "label": "Type",
+          "options": [
+            "auto",
+            "text",
+            "json"
+          ],
+          "default": "auto"
+        }
+      ]
+    },
+    {
+      "type": "text_transform",
+      "cat": "Variables",
+      "label": "Text operation",
+      "icon": "✂",
+      "desc": "Regex extract / replace / test, split, substring on text",
+      "params": [
+        {
+          "name": "value",
+          "kind": "text",
+          "label": "Text",
+          "required": true
+        },
+        {
+          "name": "op",
+          "kind": "enum",
+          "label": "Operation",
+          "options": [
+            "regex_extract",
+            "regex_extract_all",
+            "regex_replace",
+            "regex_test",
+            "split"
+          ],
+          "default": "regex_extract"
+        },
+        {
+          "name": "pattern",
+          "kind": "text",
+          "label": "Pattern / separator",
+          "required": true
+        },
+        {
+          "name": "replacement",
+          "kind": "text",
+          "label": "Replacement"
+        },
+        {
+          "name": "group",
+          "kind": "number",
+          "label": "Capture group",
+          "default": 0
+        },
+        {
+          "name": "flags",
+          "kind": "text",
+          "label": "Regex flags",
+          "default": "i"
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "cat": "Flow control",
+      "label": "If",
+      "icon": "⑂",
+      "desc": "Run steps only when a condition is true",
+      "params": [
+        {
+          "name": "condition",
+          "kind": "condition",
+          "label": "Condition",
+          "required": true
+        },
+        {
+          "name": "then",
+          "kind": "steps",
+          "label": "Then"
+        },
+        {
+          "name": "else",
+          "kind": "steps",
+          "label": "Else"
+        }
+      ]
+    },
+    {
+      "type": "foreach",
+      "cat": "Flow control",
+      "label": "For each row / item",
+      "icon": "🔁",
+      "desc": "Repeat steps for every row of an Excel table or every item of a list",
+      "params": [
+        {
+          "name": "source",
+          "kind": "var",
+          "label": "Table / list variable",
+          "required": true,
+          "default": "rows"
+        },
+        {
+          "name": "as",
+          "kind": "var",
+          "label": "Current item variable",
+          "default": "row"
+        },
+        {
+          "name": "index_as",
+          "kind": "var",
+          "label": "Counter variable (1, 2, 3 ...)",
+          "default": "index"
+        },
+        {
+          "name": "start",
+          "kind": "number",
+          "label": "Start at item #",
+          "default": 1
+        },
+        {
+          "name": "limit",
+          "kind": "number",
+          "label": "Max items (0 = all)",
+          "default": 0
+        },
+        {
+          "name": "body",
+          "kind": "steps",
+          "label": "Do"
+        }
+      ]
+    },
+    {
+      "type": "repeat",
+      "cat": "Flow control",
+      "label": "Repeat N times",
+      "icon": "🔂",
+      "desc": "Repeat steps a fixed number of times",
+      "params": [
+        {
+          "name": "times",
+          "kind": "number",
+          "label": "Times",
+          "required": true,
+          "default": 3
+        },
+        {
+          "name": "index_as",
+          "kind": "var",
+          "label": "Counter variable",
+          "default": "i"
+        },
+        {
+          "name": "body",
+          "kind": "steps",
+          "label": "Do"
+        }
+      ]
+    },
+    {
+      "type": "while",
+      "cat": "Flow control",
+      "label": "While",
+      "icon": "♾",
+      "desc": "Repeat steps while a condition stays true",
+      "params": [
+        {
+          "name": "condition",
+          "kind": "condition",
+          "label": "Condition",
+          "required": true
+        },
+        {
+          "name": "max_iterations",
+          "kind": "number",
+          "label": "Safety limit",
+          "default": 1000
+        },
+        {
+          "name": "body",
+          "kind": "steps",
+          "label": "Do"
+        }
+      ]
+    },
+    {
+      "type": "break",
+      "cat": "Flow control",
+      "label": "Exit loop",
+      "icon": "⏏",
+      "desc": "Leave the current loop",
+      "params": []
+    },
+    {
+      "type": "continue",
+      "cat": "Flow control",
+      "label": "Next iteration",
+      "icon": "⏭",
+      "desc": "Skip to the next loop iteration",
+      "params": []
+    },
+    {
+      "type": "stop",
+      "cat": "Flow control",
+      "label": "Stop flow",
+      "icon": "⏹",
+      "desc": "End the flow here (successfully)",
+      "params": [
+        {
+          "name": "message",
+          "kind": "text",
+          "label": "Message"
+        }
+      ]
+    },
+    {
+      "type": "try",
+      "cat": "Flow control",
+      "label": "Try / catch",
+      "icon": "🛡",
+      "desc": "Run steps; if one fails run the 'on error' steps instead of stopping",
+      "params": [
+        {
+          "name": "body",
+          "kind": "steps",
+          "label": "Try"
+        },
+        {
+          "name": "catch",
+          "kind": "steps",
+          "label": "On error"
+        },
+        {
+          "name": "error_var",
+          "kind": "var",
+          "label": "Error message variable",
+          "default": "error"
+        }
+      ]
+    },
+    {
+      "type": "run_flow",
+      "cat": "Flow control",
+      "label": "Run another flow",
+      "icon": "🧩",
+      "desc": "Run a saved flow as a sub-flow (shares variables)",
+      "params": [
+        {
+          "name": "file",
+          "kind": "text",
+          "label": "Flow name (from library) or file path",
+          "required": true
+        },
+        {
+          "name": "vars",
+          "kind": "kv",
+          "label": "Variables to pass in"
+        }
+      ]
+    },
+    {
+      "type": "comment",
+      "cat": "Flow control",
+      "label": "Comment",
+      "icon": "💭",
+      "desc": "A note; does nothing",
+      "params": [
+        {
+          "name": "text",
+          "kind": "longtext",
+          "label": "Note"
+        }
+      ]
+    },
+    {
+      "type": "log",
+      "cat": "Utilities",
+      "label": "Write to log",
+      "icon": "📜",
+      "desc": "Add a message to the run log",
+      "params": [
+        {
+          "name": "message",
+          "kind": "text",
+          "label": "Message",
+          "required": true
+        },
+        {
+          "name": "level",
+          "kind": "enum",
+          "label": "Level",
+          "options": [
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info"
+        }
+      ]
+    },
+    {
+      "type": "message_box",
+      "cat": "Utilities",
+      "label": "Show message / pause",
+      "icon": "🔔",
+      "desc": "Show a message and wait until you press Continue",
+      "params": [
+        {
+          "name": "message",
+          "kind": "text",
+          "label": "Message",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "ask_input",
+      "cat": "Utilities",
+      "label": "Ask for input",
+      "icon": "❔",
+      "desc": "Ask the user to type a value",
+      "params": [
+        {
+          "name": "prompt",
+          "kind": "text",
+          "label": "Question",
+          "required": true
+        },
+        {
+          "name": "default",
+          "kind": "text",
+          "label": "Default answer"
+        },
+        {
+          "name": "result_var",
+          "kind": "var",
+          "label": "Save in variable",
+          "required": true
+        }
+      ]
+    },
+    {
+      "type": "captcha_check",
+      "cat": "Utilities",
+      "label": "Check for CAPTCHA",
+      "icon": "🤖",
+      "desc": "Detect a CAPTCHA / 'I am not a robot' challenge. FlowBrowser never solves CAPTCHAs: it pauses so YOU can solve it, or stops",
+      "params": [
+        {
+          "name": "action",
+          "kind": "enum",
+          "label": "If found",
+          "options": [
+            "inherit",
+            "pause",
+            "stop",
+            "ignore"
+          ],
+          "default": "inherit"
+        }
+      ]
+    }
+  ]
+}

@@ -82,8 +82,8 @@ try {
     $git = Get-Command git -ErrorAction SilentlyContinue
     if ($git) {
         Write-Log ("Git commit   : " + (Try-Capture { git -C $root rev-parse --short HEAD }) + "   branch: " + (Try-Capture { git -C $root rev-parse --abbrev-ref HEAD }))
-        $dirty = Try-Capture { git -C $root status --porcelain }
-        if ($dirty -and $dirty -ne "n/a") { Write-Log "Git status   : there are uncommitted changes" }
+        $dirty = Try-Capture { git -C $root status --porcelain --untracked-files=no }
+        if ($dirty -and $dirty -ne "n/a") { Write-Log "Git status   : there are uncommitted changes to tracked files" }
     } else { Write-Log "Git commit   : git not found" }
     $cmake = Get-Command cmake -ErrorAction SilentlyContinue
     if (-not $cmake) { throw "cmake was not found. Install CMake 3.21 or newer (https://cmake.org/download/) and open a new terminal." }
@@ -125,24 +125,35 @@ try {
     Run-Native "configure" "cmake" $cfgArgs
 
     # ---- 3. build ----
+    # MSBuild keeps building the other project when one fails, so a failure in one exe must not throw away the other:
+    # the error is remembered, every exe that was produced is still collected, and the run is reported as failed at the end.
     Step "Compiling and linking"
-    Run-Native "build" "cmake" @("--build", $BuildDir, "--config", $Config, "--parallel")
+    $buildError = $null
+    # an exe left over from an earlier build must never be mistaken for the result of this one
+    Get-ChildItem -Path $BuildDir -Recurse -Include FlowBrowser.exe, FlowBrowserWine.exe -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    try { Run-Native "build" "cmake" @("--build", $BuildDir, "--config", $Config, "--parallel") }
+    catch { $buildError = $_.Exception.Message; Write-Log ("ERROR: " + $buildError) }
 
     # ---- 4. collect the exe files ----
     Step "Results"
-    New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
     $want = @()
     if ($wv -eq "ON") { $want += "FlowBrowser.exe" }
     if ($wn -eq "ON") { $want += "FlowBrowserWine.exe" }
+    $missing = @()
+    Remove-Item (Join-Path $OutDir "FlowBrowser*.exe") -Force -ErrorAction SilentlyContinue
     foreach ($n in $want) {
         $f = Get-ChildItem -Path $BuildDir -Recurse -Filter $n -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if (-not $f) { throw ($n + " was not produced - look for 'error' lines above") }
+        if (-not $f) { Write-Log ("{0,-22} NOT BUILT - see the error lines above" -f $n); $missing += $n; continue }
+        New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
         Copy-Item $f.FullName (Join-Path $OutDir $n) -Force
         $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash
-        Write-Log ("{0,-22} {1,10:N0} bytes   SHA256 {2}" -f $n, $f.Length, $hash)
+        Write-Log ("{0,-22} built, {1,10:N0} bytes   SHA256 {2}" -f $n, $f.Length, $hash)
         $outputs += (Join-Path $OutDir $n)
     }
-    Write-Log ("Copied to    : " + $OutDir)
+    if ($outputs.Count -gt 0) { Write-Log ("Copied to    : " + $OutDir) }
+    if ($buildError -or $missing.Count -gt 0) {
+        throw ("build incomplete" + $(if ($missing.Count -gt 0) { " - not built: " + ($missing -join ", ") } else { "" }))
+    }
     $ok = $true
 }
 catch {
@@ -164,8 +175,8 @@ finally {
     $secs = [int]((Get-Date) - $script:t0).TotalSeconds
     Write-Log ""
     if ($ok) { Write-Log ("BUILD SUCCESS in " + $secs + " s") } else { Write-Log ("BUILD FAILED after " + $secs + " s - send this file (" + $Log + ") to whoever helps you with the code") }
-    # keep a copy next to the exes and show the result on the GitHub job page
-    try { if ($ok -and (Test-Path $OutDir)) { Copy-Item $Log (Join-Path $OutDir "build.log") -Force } } catch { }
+    # keep a copy next to the exes (also after a partial build) and show the result on the GitHub job page
+    try { if (Test-Path $OutDir) { Copy-Item $Log (Join-Path $OutDir "build.log") -Force } } catch { }
     if ($env:GITHUB_STEP_SUMMARY) {
         try {
             $tail = [IO.File]::ReadAllLines($Log) | Select-Object -Last 45

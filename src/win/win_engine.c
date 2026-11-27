@@ -120,6 +120,10 @@ static void ui_cdp(FbwCall *c)
 static int be_cdp(void *ud, const char *method, const char *params, FbBuf *res, char *err, size_t errsz)
 {
     (void)ud;
+#ifdef FBW_IE
+    /* no DevTools protocol in MSHTML: src/ie/ answers the runner's calls itself (engine thread, UI thread only for COM) */
+    return fbie_cdp(method, params, res, err, errsz);
+#endif
     FbwCall *c = fbw_call_new(ui_cdp);
     if (!c) { fb_set_err(err, errsz, "Out of memory"); return -1; }
     c->s1 = fb_strdup(method);
@@ -174,10 +178,8 @@ static void ui_navigate(FbwCall *c)
 {
     FbwTab *t = G.run_tab;
     if (!t || !t->wv) { c->rc = 1; snprintf(c->err, sizeof c->err, "The tab used by this flow was closed"); return; }
-    wchar_t *w = fbw_w(c->s1);
     t->nav_ok = 1;
-    if (!w || FAILED(ICoreWebView2_Navigate(t->wv, w))) { c->rc = 1; snprintf(c->err, sizeof c->err, "'%.100s' is not a valid web address", c->s1); }
-    free(w);
+    if (fbw_tab_navigate(t, c->s1)) { c->rc = 1; snprintf(c->err, sizeof c->err, "'%.100s' is not a valid web address", c->s1); }
 }
 
 static int be_navigate(void *ud, const char *url, int wait, int timeout_ms, char *err, size_t errsz)
@@ -212,8 +214,15 @@ static void ui_tab(FbwCall *c)
         FbwTab *nt = id ? fbw_tab_by_id(id) : NULL;
         if (!nt) { c->rc = 1; snprintf(c->err, sizeof c->err, "A new tab could not be opened"); fbw_call_finish(c); return; }
         G.run_tab = nt;
+#ifdef FBW_IE
+        /* the Wine build creates the view right away: a tab without one could not be created */
+        if (!nt->ready) { c->rc = 1; snprintf(c->err, sizeof c->err, "A new tab could not be opened"); }
+        fbw_call_finish(c);
+        return;
+#else
         nt->pending = c;                    /* finished when the view exists */
         return;
+#endif
     }
     if (!strcmp(op, "switch")) {
         FbwTab *found = NULL;
@@ -241,9 +250,9 @@ static void ui_tab(FbwCall *c)
         G.run_tab = fbw_active_tab();
         return;
     }
-    if (!strcmp(op, "back")) { BOOL b = FALSE; ICoreWebView2_get_CanGoBack(t->wv, &b); if (!b) { c->rc = 1; snprintf(c->err, sizeof c->err, "There is no earlier page to go back to"); return; } ICoreWebView2_GoBack(t->wv); return; }
-    if (!strcmp(op, "forward")) { BOOL b = FALSE; ICoreWebView2_get_CanGoForward(t->wv, &b); if (!b) { c->rc = 1; snprintf(c->err, sizeof c->err, "There is no next page to go forward to"); return; } ICoreWebView2_GoForward(t->wv); return; }
-    if (!strcmp(op, "reload")) { ICoreWebView2_Reload(t->wv); return; }
+    if (!strcmp(op, "back")) { if (!fbw_tab_can_go(t, 0)) { c->rc = 1; snprintf(c->err, sizeof c->err, "There is no earlier page to go back to"); return; } fbw_tab_nav(t, FBW_NAV_BACK); return; }
+    if (!strcmp(op, "forward")) { if (!fbw_tab_can_go(t, 1)) { c->rc = 1; snprintf(c->err, sizeof c->err, "There is no next page to go forward to"); return; } fbw_tab_nav(t, FBW_NAV_FORWARD); return; }
+    if (!strcmp(op, "reload")) { fbw_tab_nav(t, FBW_NAV_RELOAD); return; }
     c->rc = 1;
     snprintf(c->err, sizeof c->err, "Unknown tab command");
 }

@@ -27,7 +27,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "WebView2.h"
+#ifndef FBW_IE
+#  include "WebView2.h"            /* the Windows build: Microsoft Edge WebView2 */
+#endif                             /* FBW_IE = the Wine / Winlator build: MSHTML (src/ie/), no WebView2 */
 
 #include "fb_json.h"
 #include "fb_runner.h"
@@ -36,6 +38,7 @@
 #define FBW_VERSION "1.0.0"
 #define FBW_ORIGIN_W L"https://appassets.example/"
 #define FBW_ORIGIN    "https://appassets.example/"
+#define FBW_NEWTAB_URL "https://appassets.example/newtab.html"   /* the Wine build maps this address to the new-tab page file */
 #define FBW_MAX_TABS 64
 
 /* messages posted to the main window */
@@ -47,17 +50,27 @@
 enum { FBW_SHELL = 0, FBW_PANEL = 1 };
 
 /* ------------------------------------------------------------------ views */
+#ifdef FBW_IE
+typedef HWND  FbwCtl;                /* the window that hosts the browser control */
+typedef void *FbwWv;                 /* IWebBrowser2 * (src/ie/) */
+#else
+typedef ICoreWebView2Controller *FbwCtl;
+typedef ICoreWebView2           *FbwWv;
+#endif
+
 typedef struct {
-    ICoreWebView2Controller *ctl;
-    ICoreWebView2           *wv;
+    FbwCtl                   ctl;
+    FbwWv                    wv;
     int                      ready;
     int                      kind;       /* FBW_SHELL / FBW_PANEL */
+    void                    *eng;        /* engine private data (Wine build) */
 } FbwView;
 
 typedef struct FbwTab {
     int                      id;
-    ICoreWebView2Controller *ctl;
-    ICoreWebView2           *wv;
+    FbwCtl                   ctl;
+    FbwWv                    wv;
+    void                    *eng;        /* engine private data (Wine build) */
     int                      ready;      /* controller + web view exist */
     char                    *title;
     char                    *url;
@@ -88,7 +101,10 @@ typedef struct {
     HINSTANCE  inst;
     HWND       hwnd, float_hwnd;
     DWORD      ui_thread;
+#ifndef FBW_IE
     ICoreWebView2Environment *env;
+#endif
+    int        engine_ready;    /* views can be created */
     FbwView    shell, panel;
     FbwTab    *tabs[FBW_MAX_TABS];
     int        ntabs, active_id, next_tab_id;
@@ -163,6 +179,9 @@ void     fbw_run_script(FbwTab *t, const char *js_utf8, FbwHandlerFn done, void 
 void     fbw_cdp(FbwTab *t, const char *method, const char *params_json, FbwHandlerFn done, void *ctx);   /* done(ctx, HRESULT, LPCWSTR json) */
 void     fbw_page_eval(FbwTab *t, const char *expression, FbwHandlerFn done, void *ctx);  /* Runtime.evaluate, awaits promises */
 void     fbw_release(void *com_object);
+void     fbw_post_zoom(void);
+const char *fbw_shortcut_name(unsigned vk, int ctrl, int shift, int alt);   /* NULL when the key is not a browser shortcut */
+void     fbw_shortcut(const char *name);                     /* tell the shell */
 void     fbw_tools_cmd(FbwTab *t, const char *cmd_json);   /* picker / recorder control */
 FbwCall *fbw_call_new(void (*fn)(FbwCall *));            /* refs = 2: the caller's and the UI thread's */
 int      fbw_ui_call(FbwCall *c, DWORD timeout_ms);     /* post to the UI thread and wait: 0 done, 1 timeout, 2 the run was stopped */
@@ -174,6 +193,37 @@ void     fbw_toggle_fullscreen(void);
 void     fbw_flash(void);
 void     fbw_on_shell_ready(void);
 void     fbw_on_panel_ready(void);
+
+/* ------------------------------------------------------------------ browser engine layer
+   Implemented by win_wv2.c (WebView2) or by src/ie/ (Wine: MSHTML in an ATL host window). Everything above this line is
+   shared by both builds. All of it is called on the UI thread. */
+enum { FBW_NAV_BACK, FBW_NAV_FORWARD, FBW_NAV_RELOAD, FBW_NAV_STOP };
+const char *fbw_engine_name(void);                          /* shown in About and in the log */
+int      fbh_start(void);                                   /* the main window exists: start creating the shell view; 0 = ok */
+void     fbh_create_panel(void);                            /* the shell page is ready: create the Studio view */
+void     fbh_create_tab(FbwTab *t);                         /* start creating this tab's view */
+void     fbh_destroy_tab(FbwTab *t);                        /* close the view and release engine data (t itself is freed by the caller) */
+void     fbh_post_view(FbwView *v, const char *json);       /* deliver a JSON message to a shell / panel page */
+void     fbh_set_bounds(FbwCtl c, const RECT *r);
+void     fbh_set_visible(FbwCtl c, int visible);
+void     fbh_set_parent(FbwCtl c, HWND parent);
+void     fbh_parent_moved(FbwCtl c);
+void     fbh_focus(FbwCtl c);
+void     fbh_close_view(FbwCtl c);                          /* shutdown */
+int      fbh_pretranslate(MSG *m);                          /* message loop hook (keyboard for embedded controls): 1 = handled */
+void     fbh_timer(void);                                   /* WM_TIMER of the main window (the Wine build polls its pages here) */
+int      fbw_tab_navigate(FbwTab *t, const char *url);      /* 0 = started */
+int      fbw_tab_can_go(FbwTab *t, int forward);
+void     fbw_tab_nav(FbwTab *t, int op);                    /* FBW_NAV_* */
+double   fbw_tab_get_zoom(FbwTab *t);
+void     fbw_tab_set_zoom(FbwTab *t, double z);
+void     fbw_tab_devtools(FbwTab *t);
+void     fbw_clear_data(FbwTab *t, int cookies, int cache);
+#ifdef FBW_IE
+/* The runner's DevTools calls, answered by src/core/fb_legacy.c on top of the MSHTML host (engine thread). Same contract as FbBackend.cdp. */
+int      fbie_cdp(const char *method, const char *params_json, FbBuf *result_json, char *err, size_t errsz);
+#endif
+const char *fbw_build_info(void);                           /* version, compiler, date, engine: written to the log and shown in About */
 
 /* ------------------------------------------------------------------ win_cmd.c */
 void     fbw_command(int src, FbJson *msg);             /* a message from the shell / panel UI */

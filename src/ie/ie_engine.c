@@ -387,7 +387,8 @@ void ie_apply_proxy_from_settings(void)
     for (const char *p = px; ok && *p; p++) if (!(isalnum((unsigned char)*p) || strchr(".:/-_@[]", *p))) ok = 0;
     if (ok) {
         wchar_t *w = fbw_w(px);
-        INTERNET_PROXY_INFOW pi;
+        /* same layout as INTERNET_PROXY_INFO; the Windows SDK has no ...W variant of that type, so it is spelled out here */
+        struct { DWORD dwAccessType; LPCWSTR lpszProxy; LPCWSTR lpszProxyBypass; } pi;
         memset(&pi, 0, sizeof pi);
         pi.dwAccessType = INTERNET_OPEN_TYPE_PROXY;
         pi.lpszProxy = w;

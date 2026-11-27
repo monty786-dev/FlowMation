@@ -134,4 +134,5 @@ long ICoreWebView2_get_DocumentTitle();
 long ICoreWebView2_get_Settings();
 long ICoreWebView2_get_Source();
 long IStream_Release();
+long IUnknown_QueryInterface();
 long IUnknown_Release();

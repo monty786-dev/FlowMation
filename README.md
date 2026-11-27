@@ -86,7 +86,8 @@ You need nothing installed locally. GitHub builds it for you.
 
 **If the Windows job fails** (likely the first time, see the note at the top): download the artifact **`build-log-x64`**
 (it is uploaded even when the build fails), read the *Summary* at its end - it lists the compiler errors - and fix those
-lines, or send the file to whoever helps you with the code. The `portable-tests` job tells you whether the engine itself is
+lines, or send the file to whoever helps you with the code. If only one of the two exes fails to compile, the other one is still
+built and packaged (the build step is red, the `FlowBrowser-windows-<arch>` artifact still contains the exe that worked). The `portable-tests` job tells you whether the engine itself is
 healthy. The experimental `wine-smoke` job runs `FlowBrowserWine.exe` under real Wine on Linux; if it fails, its
 `wine-smoke-logs` artifact shows why (it does not fail the workflow).
 

@@ -68,5 +68,5 @@
     P.setFlow(P.newFlow('New flow'), null);
     Panel.show('flow');
     Host.send('panel.ready', {});
-  }).catch(function (e) { document.body.appendChild(h('pre', { style: { padding: '12px', color: 'crimson' }, text: 'FlowBrowser Studio could not start: ' + (e && e.message) })); });
+  }).then(null, function (e) { document.body.appendChild(h('pre', { style: { padding: '12px', color: 'crimson' }, text: 'FlowBrowser Studio could not start: ' + (e && e.message) })); });
 })();

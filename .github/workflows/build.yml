@@ -43,22 +43,27 @@ jobs:
           path: build-${{ matrix.arch }}.log
           if-no-files-found: warn
 
-      - name: Package
+      # packages every exe that WAS built, even if the other one failed (the build step is then red, but you still get the working exe)
+      - name: Package whatever was built
+        if: always()
         shell: pwsh
         run: |
           $name = "FlowBrowser-windows-${{ matrix.arch }}"
+          $exes = @(Get-ChildItem dist/${{ matrix.arch }} -Filter *.exe -ErrorAction SilentlyContinue)
+          if ($exes.Count -eq 0) { Write-Host "No exe was produced; see build-${{ matrix.arch }}.log"; exit 0 }
           New-Item -ItemType Directory -Force -Path dist/$name | Out-Null
-          Copy-Item dist/${{ matrix.arch }}/FlowBrowser.exe dist/$name/
-          Copy-Item dist/${{ matrix.arch }}/FlowBrowserWine.exe dist/$name/
+          $exes | ForEach-Object { Copy-Item $_.FullName dist/$name/ }
           Copy-Item README.md dist/$name/README.md
           Copy-Item docs/WINLATOR.md dist/$name/WINLATOR.md
           Copy-Item build-${{ matrix.arch }}.log dist/$name/build.log
           Compress-Archive -Path dist/$name/* -DestinationPath dist/$name.zip -Force
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: FlowBrowser-windows-${{ matrix.arch }}
           path: dist/*.zip
+          if-no-files-found: warn
 
       - name: Attach to the release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -91,6 +96,7 @@ jobs:
   wine-smoke:
     name: Wine smoke test (experimental)
     needs: windows
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     continue-on-error: true
     steps:
@@ -100,7 +106,9 @@ jobs:
           name: FlowBrowser-windows-x64
           path: dl
       - name: Unpack
-        run: unzip -o dl/*.zip -d app && ls -l app
+        run: |
+          unzip -o dl/*.zip -d app && ls -l app
+          test -f app/FlowBrowserWine.exe || { echo "FlowBrowserWine.exe was not built, nothing to test (see build-log-x64)"; exit 1; }
       - name: Install Wine, Xvfb and Wine Gecko
         run: |
           sudo apt-get update

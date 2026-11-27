@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "../src/core/fb_runner.h"
+#include "../src/core/fb_legacy.h"
 
 static int g_next_id = 1;
 
@@ -56,9 +57,10 @@ static int fill_err(FbJson *a, char *err, size_t n)
     return ok ? 0 : -1;
 }
 
-static int h_cdp(void *ud, const char *method, const char *params, FbBuf *result, char *err, size_t errsz)
+static int g_legacy;                      /* --legacy: pretend the browser has no DevTools input / handle support (see fb_legacy.c) */
+
+static int cdp_raw(const char *method, const char *params, FbBuf *result, char *err, size_t errsz)
 {
-    (void)ud;
     FbJson *q = fbj_obj();
     fbj_obj_set(q, "op", fbj_str("cdp"));
     fbj_obj_set(q, "method", fbj_str(method));
@@ -72,6 +74,132 @@ static int h_cdp(void *ud, const char *method, const char *params, FbBuf *result
     }
     fbj_free(a);
     return rc;
+}
+
+/* ---- the legacy bridge host: everything goes through page scripts, the rest is passed to the real browser */
+static int lg_eval(void *ud, const char *js, FbBuf *out, char *err, size_t errsz)
+{
+    (void)ud;
+    FbBuf p, res;
+    fb_buf_init(&p);
+    fb_buf_init(&res);
+    fb_buf_puts(&p, "{\"returnByValue\":true,\"userGesture\":true,\"expression\":");
+    fbj_write_escaped_string(&p, js, strlen(js));
+    fb_buf_putc(&p, '}');
+    int rc = cdp_raw("Runtime.evaluate", fb_buf_cstr(&p), &res, err, errsz);
+    if (!rc) {
+        FbJson *r = fbj_parse(fb_buf_cstr(&res), res.len, err, errsz);
+        const FbJson *ex = fbj_get(r, "exceptionDetails");
+        if (ex) { fb_set_err(err, errsz, "%s", fbj_get_str(fbj_get(ex, "exception"), "description", "script error")); rc = 1; }
+        else { const FbJson *v = fbj_get(fbj_get(r, "result"), "value"); fb_buf_puts(out, v && v->type == FBJ_STR ? v->str : ""); }
+        fbj_free(r);
+    }
+    fb_buf_free(&p);
+    fb_buf_free(&res);
+    return rc;
+}
+
+static int lg_screenshot(void *ud, const FbJson *params, FbBuf *b64, char *err, size_t errsz)
+{
+    (void)ud;
+    char *pj = fbj_to_string(params, 0);
+    FbBuf res;
+    fb_buf_init(&res);
+    int rc = cdp_raw("Page.captureScreenshot", pj, &res, err, errsz);
+    free(pj);
+    if (!rc) { FbJson *r = fbj_parse(fb_buf_cstr(&res), res.len, err, errsz); fb_buf_puts(b64, fbj_get_str(r, "data", "")); fbj_free(r); }
+    fb_buf_free(&res);
+    return rc;
+}
+
+/* stands in for the Windows host's native route: resolves the page handle to a real element and uses the protocol */
+static int lg_set_files(void *ud, int handle, double node, const FbJson *paths, char *err, size_t errsz)
+{
+    (void)ud;
+    if (handle <= 0) {                                         /* the chooser the test browser opened: same protocol call, by node id */
+        FbJson *q = fbj_obj();
+        fbj_obj_set(q, "files", fbj_clone(paths));
+        fbj_obj_set(q, "backendNodeId", fbj_num(node));
+        char *qs = fbj_to_string(q, 0);
+        FbBuf r2;
+        fb_buf_init(&r2);
+        int rc2 = cdp_raw("DOM.setFileInputFiles", qs, &r2, err, errsz);
+        fb_buf_free(&r2);
+        free(qs);
+        fbj_free(q);
+        return rc2;
+    }
+    FbBuf p, res;
+    fb_buf_init(&p);
+    fb_buf_init(&res);
+    fb_buf_printf(&p, "{\"returnByValue\":false,\"expression\":\"window.__fbLegacy.handle(%d)\"}", handle);
+    int rc = cdp_raw("Runtime.evaluate", fb_buf_cstr(&p), &res, err, errsz);
+    if (!rc) {
+        FbJson *r = fbj_parse(fb_buf_cstr(&res), res.len, err, errsz);
+        const char *oid = fbj_get_str(fbj_get(r, "result"), "objectId", NULL);
+        if (!oid) { fb_set_err(err, errsz, "The file field is gone"); rc = 1; }
+        else {
+            FbJson *q = fbj_obj();
+            fbj_obj_set(q, "files", fbj_clone(paths));
+            fbj_obj_set(q, "objectId", fbj_str(oid));
+            char *qs = fbj_to_string(q, 0);
+            FbBuf r2;
+            fb_buf_init(&r2);
+            rc = cdp_raw("DOM.setFileInputFiles", qs, &r2, err, errsz);
+            fb_buf_free(&r2);
+            free(qs);
+            fbj_free(q);
+        }
+        fbj_free(r);
+    }
+    fb_buf_free(&p);
+    fb_buf_free(&res);
+    return rc;
+}
+
+static int lg_chooser(void *ud, int on, char *err, size_t errsz)
+{
+    (void)ud;
+    FbBuf res;
+    fb_buf_init(&res);
+    int rc = cdp_raw("Page.setInterceptFileChooserDialog", on ? "{\"enabled\":true}" : "{\"enabled\":false}", &res, err, errsz);
+    fb_buf_free(&res);
+    return rc;
+}
+
+static int lg_clear(void *ud, int cookies, int cache, char *err, size_t errsz)
+{
+    (void)ud;
+    FbBuf res;
+    fb_buf_init(&res);
+    int rc = cookies ? cdp_raw("Network.clearBrowserCookies", "{}", &res, err, errsz) : 0;
+    if (!rc && cache) rc = cdp_raw("Network.clearBrowserCache", "{}", &res, err, errsz);
+    fb_buf_free(&res);
+    return rc;
+}
+
+static int lg_ua(void *ud, const char *ua, char *err, size_t errsz)
+{
+    (void)ud;
+    FbBuf res, p;
+    fb_buf_init(&res);
+    fb_buf_init(&p);
+    fb_buf_puts(&p, "{\"userAgent\":");
+    fbj_write_escaped_string(&p, ua, strlen(ua));
+    fb_buf_putc(&p, '}');
+    int rc = cdp_raw("Emulation.setUserAgentOverride", fb_buf_cstr(&p), &res, err, errsz);
+    fb_buf_free(&res);
+    fb_buf_free(&p);
+    return rc;
+}
+
+static int h_cdp(void *ud, const char *method, const char *params, FbBuf *result, char *err, size_t errsz)
+{
+    (void)ud;
+    if (!g_legacy) return cdp_raw(method, params, result, err, errsz);
+    FbLegacyHost lh = { 0 };
+    lh.eval = lg_eval; lh.set_files = lg_set_files; lh.chooser = lg_chooser; lh.screenshot = lg_screenshot; lh.clear_data = lg_clear; lh.user_agent = lg_ua;
+    return fbl_cdp(&lh, method, params, result, err, errsz);
 }
 
 static int h_navigate(void *ud, const char *url, int wait, int timeout_ms, char *err, size_t errsz)
@@ -159,6 +287,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--base") && i + 1 < argc) base = argv[++i];
         else if (!strcmp(argv[i], "--flows") && i + 1 < argc) flows = argv[++i];
         else if (!strcmp(argv[i], "--check")) check_only = 1;
+        else if (!strcmp(argv[i], "--legacy")) g_legacy = 1;
         else if (!strcmp(argv[i], "--var") && i + 1 < argc) {
             char *kv = fb_strdup(argv[++i]);
             char *eq = strchr(kv, '=');
@@ -167,7 +296,7 @@ int main(int argc, char **argv)
         } else if (argv[i][0] != '-') flow_path = argv[i];
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 64; }
     }
-    if (!flow_path) { fprintf(stderr, "usage: fbrun flow.fbflow [--catalog catalog.json] [--base DIR] [--flows DIR] [--var n=v] [--check]\n"); return 64; }
+    if (!flow_path) { fprintf(stderr, "usage: fbrun flow.fbflow [--catalog catalog.json] [--base DIR] [--flows DIR] [--var n=v] [--check] [--legacy]\n"); return 64; }
 
     char err[512];
     FbBuf b;

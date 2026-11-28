@@ -115,6 +115,10 @@ it; the C runtime is linked statically).
   summary page, and copied into the release zip.
 * Each exe also contains its own build information (target, compiler, architecture, git commit, build time). It is shown in
   Settings → About and written to the start-up line of `logs\host.log`, so a bug report can be matched to the exact build.
+* `FlowBrowserWine.exe` also reports its own start-up: an orange notice inside the window when a page script fails or does not
+  finish starting, a message box after 30 s, and in `logs\host.log` the Wine version, Gecko folders, window sizes, every
+  navigation and what the engine supports. A white window on Winlator is therefore diagnosable (see docs/WINLATOR.md,
+  *A white or blank window*).
 
 ### Running it
 

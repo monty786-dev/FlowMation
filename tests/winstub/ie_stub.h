@@ -28,8 +28,8 @@ typedef struct IDispatchVtbl {
 } IDispatchVtbl;
 struct IDispatch { const IDispatchVtbl *lpVtbl; };
 typedef struct IWebBrowser2 IWebBrowser2; typedef struct IConnectionPoint IConnectionPoint; typedef struct IConnectionPointContainer IConnectionPointContainer;
-typedef struct IOleCommandTarget IOleCommandTarget; typedef struct IOleInPlaceActiveObject IOleInPlaceActiveObject;
-extern const IID IID_IUnknown, IID_IDispatch, IID_IWebBrowser2, IID_IConnectionPointContainer, IID_IOleCommandTarget, IID_IOleInPlaceActiveObject, DIID_DWebBrowserEvents2;
+typedef struct IOleCommandTarget IOleCommandTarget; typedef struct IOleInPlaceActiveObject IOleInPlaceActiveObject; typedef struct IOleInPlaceObject IOleInPlaceObject;
+extern const IID IID_IUnknown, IID_IDispatch, IID_IWebBrowser2, IID_IConnectionPointContainer, IID_IOleCommandTarget, IID_IOleInPlaceActiveObject, IID_IOleInPlaceObject, DIID_DWebBrowserEvents2;
 enum { LOCALE_USER_DEFAULT = 0x0400, DISPATCH_METHOD = 1, DISPATCH_PROPERTYGET = 2, DISPATCH_PROPERTYPUT = 4, DISPID_PROPERTYPUT = -3,
   DISPID_BEFORENAVIGATE2 = 250, DISPID_NEWWINDOW2 = 251, DISPID_NAVIGATECOMPLETE2 = 252, DISPID_DOCUMENTCOMPLETE = 259, DISPID_TITLECHANGE = 113,
   DISPID_NEWWINDOW3 = 273, DISPID_NAVIGATEERROR = 271, DISPID_COMMANDSTATECHANGE = 105,

@@ -102,3 +102,11 @@ enum {
 #define _strnicmp strncasecmp
 #define localtime_s(tm, t) (localtime_r((t), (tm)) ? 0 : 1)
 wchar_t *_wcsdup(const wchar_t *);
+/* registry + message box constants used by the Wine host */
+typedef void *HKEY;
+#define HKEY_CURRENT_USER ((HKEY)(unsigned long)0x80000001)
+#define KEY_SET_VALUE 0x0002
+#define REG_DWORD 4
+#define ERROR_SUCCESS 0L
+#define MB_ICONWARNING 0x00000030L
+

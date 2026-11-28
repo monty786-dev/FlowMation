@@ -35,7 +35,7 @@
     if (m.secret_var) {
       var v = m.secret_var;
       var have = steps.some(function (s) { return s.type === 'ask_input' && s.result_var === v; }) || (P.flow && JSON.stringify(P.flow.steps).indexOf('"result_var":"' + v + '"') >= 0);
-      if (!have) { steps.push({ type: 'ask_input', name: 'Ask for ' + v, prompt: 'Enter the ' + v + ' for this run', default: '', result_var: v }); toast('The password is never recorded: the flow asks you for it when it runs.'); }
+      if (!have) { steps.push({ type: 'ask_input', name: 'Ask for ' + v, prompt: 'Enter the ' + v + ' for this run', 'default': '', result_var: v }); toast('The password is never recorded: the flow asks you for it when it runs.'); }
     }
     var last = steps[steps.length - 1];
     if (m.merge_key && last && meta.get(last) && meta.get(last).key === m.merge_key) {      /* typing: keep only the final value */

@@ -15,7 +15,7 @@
 
   /* ------------------------------------------------------------ catalog */
   P.loadCatalog = function () {
-    return fetch('catalog.json').then(function (r) { return r.json(); }).then(function (c) {
+    return Host.getText('catalog.json').then(function (t) { return JSON.parse(t); }).then(function (c) {
       P.catalog = c; P.defs = {}; P.cats = [];
       c.steps.forEach(function (s) { P.defs[s.type] = s; if (P.cats.indexOf(s.cat) < 0) P.cats.push(s.cat); });
     });
@@ -39,8 +39,8 @@
     if (!def) return s;
     def.params.forEach(function (p) {
       if (p.kind === 'steps') s[p.name] = [];
-      else if (p.default !== undefined && p.kind !== 'bool') s[p.name] = p.default;
-      else if (p.kind === 'bool' && p.default !== undefined) s[p.name] = p.default;
+      else if (p['default'] !== undefined && p.kind !== 'bool') s[p.name] = p['default'];
+      else if (p.kind === 'bool' && p['default'] !== undefined) s[p.name] = p['default'];
     });
     return s;
   };

@@ -740,13 +740,12 @@ static void do_zoom(const FbJson *m)
 {
     FbwTab *t = fbw_active_tab();
     if (!t || !t->ctl) return;
-    double z = 1.0;
-    ICoreWebView2Controller_get_ZoomFactor(t->ctl, &z);
+    double z = fbw_tab_get_zoom(t);
     if (fbj_get_bool(m, "reset", 0)) z = G.default_zoom > 0 ? G.default_zoom : 1.0;
     else z += fbj_get_num(m, "delta", 0);
     if (z < 0.25) z = 0.25;
     if (z > 5.0) z = 5.0;
-    ICoreWebView2Controller_put_ZoomFactor(t->ctl, z);
+    fbw_tab_set_zoom(t, z);
     t->zoom = z;
     char *s = fbw_dupf("{\"ev\":\"zoom\",\"factor\":%.3f}", z);
     if (s) { fbw_post(FBW_SHELL, s); free(s); }
@@ -802,6 +801,8 @@ void fbw_command(int src, FbJson *m)
     } else if (!strcmp(cmd, "app.info")) {
         FbJson *o = fbj_obj();
         fbj_obj_set(o, "version", fbj_str(FBW_VERSION));
+        fbj_obj_set(o, "engine", fbj_str(fbw_engine_name()));
+        fbj_obj_set(o, "build", fbj_str(fbw_build_info()));
         fbj_obj_set(o, "dataDir", fbj_str(G.data_dir));
         fbj_obj_set(o, "portable", fbj_bool(G.portable));
         fbw_reply(src, m, o);
@@ -921,22 +922,19 @@ void fbw_command(int src, FbJson *m)
         FbwTab *t = fbw_active_tab();
         if (!u[0] || !safe_url(u)) return;
         if (!t || !t->wv) { fbw_tab_new(u, 1); return; }
-        wchar_t *w = fbw_w(u);
-        if (w) { if (FAILED(ICoreWebView2_Navigate(t->wv, w))) fbw_tab_new(NULL, 1); free(w); }
+        if (fbw_tab_navigate(t, u)) fbw_tab_new(NULL, 1);
         if (fbj_get_bool(m, "user", 0)) notify_user_nav(NULL, u);
-    } else if (!strcmp(cmd, "nav.back")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) { ICoreWebView2_GoBack(t->wv); notify_user_nav("back", NULL); } }
-    else if (!strcmp(cmd, "nav.forward")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) { ICoreWebView2_GoForward(t->wv); notify_user_nav("forward", NULL); } }
-    else if (!strcmp(cmd, "nav.reload")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) { ICoreWebView2_Reload(t->wv); notify_user_nav("reload", NULL); } }
-    else if (!strcmp(cmd, "nav.stop")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) ICoreWebView2_Stop(t->wv); }
+    } else if (!strcmp(cmd, "nav.back")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) { fbw_tab_nav(t, FBW_NAV_BACK); notify_user_nav("back", NULL); } }
+    else if (!strcmp(cmd, "nav.forward")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) { fbw_tab_nav(t, FBW_NAV_FORWARD); notify_user_nav("forward", NULL); } }
+    else if (!strcmp(cmd, "nav.reload")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) { fbw_tab_nav(t, FBW_NAV_RELOAD); notify_user_nav("reload", NULL); } }
+    else if (!strcmp(cmd, "nav.stop")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) fbw_tab_nav(t, FBW_NAV_STOP); }
     else if (!strcmp(cmd, "zoom")) do_zoom(m);
     else if (!strcmp(cmd, "find")) do_find(m);
     else if (!strcmp(cmd, "find.clear")) fbw_run_script(fbw_active_tab(), "getSelection&&getSelection().removeAllRanges()", on_nothing, NULL);
     else if (!strcmp(cmd, "print")) fbw_run_script(fbw_active_tab(), "window.print()", on_nothing, NULL);
-    else if (!strcmp(cmd, "devtools")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) ICoreWebView2_OpenDevToolsWindow(t->wv); }
+    else if (!strcmp(cmd, "devtools")) { FbwTab *t = fbw_active_tab(); if (t && t->wv) fbw_tab_devtools(t); }
     else if (!strcmp(cmd, "fullscreen")) fbw_toggle_fullscreen();
     else if (!strcmp(cmd, "clear.data")) {
-        FbwTab *t = fbw_active_tab();
-        if (t && fbj_get_bool(m, "cookies", 0)) fbw_cdp(t, "Network.clearBrowserCookies", "{}", on_nothing, NULL);
-        if (t && fbj_get_bool(m, "cache", 0)) fbw_cdp(t, "Network.clearBrowserCache", "{}", on_nothing, NULL);
+        fbw_clear_data(fbw_active_tab(), fbj_get_bool(m, "cookies", 0), fbj_get_bool(m, "cache", 0));
     } else if (m->count && fbj_get(m, "id")) fbw_reply_err(src, m, "Unknown command");
 }

@@ -7,10 +7,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   windows:
     name: Windows ${{ matrix.arch }}
     runs-on: windows-latest
+    permissions:
+      contents: write          # only used to attach the zip to a release when you push a v* tag
     strategy:
       fail-fast: false
       matrix:
@@ -18,29 +23,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch the WebView2 SDK
+      # tools/build.ps1 downloads the WebView2 SDK, configures + builds BOTH exes (FlowBrowser.exe and
+      # FlowBrowserWine.exe) and writes everything it prints to build-<arch>.log
+      - name: Build (writes build-${{ matrix.arch }}.log)
         shell: pwsh
-        run: ./tools/fetch-webview2.ps1
+        run: ./tools/build.ps1 -Target all -Arch ${{ matrix.arch }} -Config Release -Log build-${{ matrix.arch }}.log
 
-      - name: Configure
-        run: cmake -S . -B build -A ${{ matrix.arch }}
+      - name: Show the end of the log if the build failed
+        if: failure()
+        shell: pwsh
+        run: Get-Content build-${{ matrix.arch }}.log -Tail 80
 
-      - name: Build
-        run: cmake --build build --config Release --parallel
+      # uploaded even when the build FAILED, so the compiler errors can be read without scrolling through the job page
+      - name: Upload build.log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.arch }}
+          path: build-${{ matrix.arch }}.log
+          if-no-files-found: warn
 
-      - name: Package
+      # packages every exe that WAS built, even if the other one failed (the build step is then red, but you still get the working exe)
+      - name: Package whatever was built
+        if: always()
         shell: pwsh
         run: |
           $name = "FlowBrowser-windows-${{ matrix.arch }}"
+          $exes = @(Get-ChildItem dist/${{ matrix.arch }} -Filter *.exe -ErrorAction SilentlyContinue)
+          if ($exes.Count -eq 0) { Write-Host "No exe was produced; see build-${{ matrix.arch }}.log"; exit 0 }
           New-Item -ItemType Directory -Force -Path dist/$name | Out-Null
-          Copy-Item build/Release/FlowBrowser.exe dist/$name/
+          $exes | ForEach-Object { Copy-Item $_.FullName dist/$name/ }
           Copy-Item README.md dist/$name/README.md
+          Copy-Item docs/WINLATOR.md dist/$name/WINLATOR.md
+          Copy-Item build-${{ matrix.arch }}.log dist/$name/build.log
           Compress-Archive -Path dist/$name/* -DestinationPath dist/$name.zip -Force
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: FlowBrowser-windows-${{ matrix.arch }}
           path: dist/*.zip
+          if-no-files-found: warn
 
       - name: Attach to the release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -56,9 +79,49 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install Playwright and Chromium
+      - name: Install Playwright, acorn and Chromium
         run: |
-          npm install --no-save playwright
+          npm install --no-save playwright acorn
           npx playwright install --with-deps chromium
       - name: Run all tests
         run: NODE_PATH=$PWD/node_modules tests/run_all.sh --web
+      - name: Syntax-check the Windows sources against stand-in headers
+        run: |
+          sudo apt-get install -y --no-install-recommends clang-18
+          sh tests/winstub/check.sh
+
+  # EXPERIMENTAL: runs FlowBrowserWine.exe under real Wine + Wine Gecko with a virtual screen and lets it execute a small flow.
+  # It is the nearest thing to Winlator that CI can run. A failure here does not fail the workflow, but its logs are the most
+  # useful thing to send back if FlowBrowserWine.exe misbehaves on your phone.
+  wine-smoke:
+    name: Wine smoke test (experimental)
+    needs: windows
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: FlowBrowser-windows-x64
+          path: dl
+      - name: Unpack
+        run: |
+          unzip -o dl/*.zip -d app && ls -l app
+          test -f app/FlowBrowserWine.exe || { echo "FlowBrowserWine.exe was not built, nothing to test (see build-log-x64)"; exit 1; }
+      - name: Install Wine, Xvfb and Wine Gecko
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wine wine64 xvfb xauth curl ca-certificates
+          mkdir -p ~/.cache/wine
+          curl -fsSL -o ~/.cache/wine/wine-gecko-2.47.4-x86_64.msi https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-x86_64.msi
+          wine --version
+      - name: Run the smoke flow
+        run: tests/smoke/wine_smoke.sh app/FlowBrowserWine.exe smoke-out
+      - name: Upload the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wine-smoke-logs
+          path: smoke-out
+          if-no-files-found: warn

@@ -1,0 +1,17 @@
+{
+  "format": "flowbrowser-flow",
+  "version": 1,
+  "name": "smoke",
+  "description": "End-to-end check used by tests/smoke/wine_smoke.sh: open a local page, read a heading, fill a field, read it back, write the result to a file and take a screenshot.",
+  "variables": {},
+  "settings": { "timeout_ms": 20000 },
+  "steps": [
+    { "type": "navigate", "url": "http://127.0.0.1:8099/form.html" },
+    { "type": "get_text", "selector": "css:h1", "what": "text", "result_var": "heading" },
+    { "type": "fill", "selector": "css:#fn", "value": "Ana" },
+    { "type": "get_text", "selector": "css:#fn", "what": "value", "result_var": "typed" },
+    { "type": "text_write", "file": "Z:\\tmp\\flowbrowser-smoke.txt", "text": "heading={{heading}};typed={{typed}}", "append": false },
+    { "type": "screenshot", "path": "Z:\\tmp\\flowbrowser-smoke.png" },
+    { "type": "log", "message": "smoke flow finished" }
+  ]
+}

@@ -4,6 +4,19 @@ const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..'), UI = path.join(ROOT, 'src/ui');
 const MOCK = fs.readFileSync(path.join(__dirname, 'ui_mock.js'), 'utf8');
+/* FB_LEGACY=1: run the UI in an engine that lacks what compat.js provides (Promise, Object.assign, closest, ...) */
+const LEGACY = !!process.env.FB_LEGACY;
+const STRIP_UI = `(function () {
+  function kill(o, k) { try { delete o[k]; } catch (e) {} try { if (o[k] !== undefined) Object.defineProperty(o, k, { value: undefined, configurable: true, writable: true }); } catch (e) {} }
+  kill(window, 'Promise'); kill(window, 'WeakMap'); kill(window, 'ResizeObserver'); kill(window, 'fetch');
+  ['assign', 'values', 'entries'].forEach(function (k) { kill(Object, k); });
+  kill(Array, 'from'); ['find', 'findIndex', 'includes', 'fill'].forEach(function (k) { kill(Array.prototype, k); });
+  ['includes', 'startsWith', 'endsWith', 'repeat', 'padStart', 'padEnd'].forEach(function (k) { kill(String.prototype, k); });
+  ['isInteger', 'isFinite', 'isNaN'].forEach(function (k) { kill(Number, k); }); ['trunc', 'sign'].forEach(function (k) { kill(Math, k); });
+  ['closest', 'matches', 'remove'].forEach(function (k) { kill(Element.prototype, k); });
+  /* IE-style classList.toggle ignores the second argument */
+  DOMTokenList.prototype.toggle = function (n) { if (this.contains(n)) { this.remove(n); return false; } this.add(n); return true; };
+})();`;
 let total = 0, failed = 0;
 function check(ok, msg) { total++; if (!ok) { failed++; console.log('  FAIL: ' + msg); } else if (process.env.V) console.log('  ok: ' + msg); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -27,6 +40,7 @@ function engineCheck(flow) {
 
 async function open(browser, site, file, w, h) {
   const ctx = await browser.newContext({ viewport: { width: w || 460, height: h || 820 } });
+  if (LEGACY) await ctx.addInitScript({ content: STRIP_UI });
   await ctx.addInitScript({ content: MOCK });
   const page = await ctx.newPage(); const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
@@ -35,7 +49,7 @@ async function open(browser, site, file, w, h) {
   await page.goto(site.url + '/' + file);
   return { ctx, page, errors };
 }
-const flowOf = page => page.evaluate(() => JSON.parse(JSON.stringify(P.flow)));
+const flowOf = async page => { if (LEGACY) await sleep(80); /* the Promise polyfill settles on a timer, not a microtask */ return page.evaluate(() => JSON.parse(JSON.stringify(P.flow))); };
 const mock = (page, fn, arg) => page.evaluate(fn, arg);
 
 async function panelTests(browser, site) {

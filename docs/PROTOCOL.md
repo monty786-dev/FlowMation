@@ -2,7 +2,9 @@
 
 Three boundaries, each small enough to replace one side: UI ⇄ host, page tools ⇄ host, runner ⇄ browser.
 The Windows host (`src/win`) implements the host side; `tests/ui_mock.js` and `tests/bridge.js` are test doubles for the
-same contracts.
+same contracts. There are two engines behind it: WebView2 (`src/win/win_wv2.c`, `FlowBrowser.exe`) and Wine's MSHTML
+(`src/ie/`, `FlowBrowserWine.exe`); section 4 describes what changes for the second one. Sections 1-3 are the contract
+both of them honour.
 
 ## 1. UI ⇄ host (shell and Studio panel)
 
@@ -67,3 +69,33 @@ Threading in the Windows host: the runner runs on its own thread; every browser 
 * `.fbflow` - one flow, JSON, `"format": "flowbrowser-flow"`, versioned and migrated on load.
 * `.fbbackup` - JSON with every flow inside, `"format": "flowbrowser-backup"`.
 * Library history: `flows/.history/<name>__YYYYMMDD-HHMMSS.fbflow`.
+
+## 4. The Wine / MSHTML engine (`FlowBrowserWine.exe`)
+
+MSHTML under Wine (Wine Gecko) has no `chrome.webview`, no DevTools protocol and no web-message channel, so the same three
+contracts are carried differently. Nothing above the host changes: the UI, the runner and the step code are shared.
+
+* **UI ⇄ host.** The shell and Studio pages are loaded as local files with `?host=ie` (materialised from the embedded resources
+  into `<data>\ui\`). `src/ui/common.js` then queues what the UI sends; the host polls `window.__fbPull()` (about every 30 ms) and
+  delivers messages by calling `window.__fbDeliver(json)`. Message shapes are exactly those of section 1. Page scripts are ES5
+  (`src/ui/compat.js` supplies the few missing built-ins); `tests/lint_es5.js` enforces it.
+* **Page tools ⇄ host.** `src/js/fb_legacy.js` is injected with the runtime and tools. Tools post with `window.__fbPost(s)`
+  into a queue that the host polls with `window.__fbPullTools()` (every second tick). Host → page calls are script calls through
+  `window.__fbEval(expression)`, which the host injects (MSHTML can only call a named script function with text arguments).
+  The token check of section 2 is unchanged.
+* **Runner ⇄ browser.** The runner still issues DevTools calls. `src/core/fb_legacy.c` (`fbl_cdp`) answers the subset the runner
+  uses: `Runtime.evaluate`, `Input.dispatchMouseEvent`, `Input.dispatchKeyEvent`, `Input.insertText`, `DOM.setFileInputFiles`,
+  `Page.setInterceptFileChooserDialog`, `Page.captureScreenshot`, `Network.clearBrowserCookies` / `clearBrowserCache`,
+  `Emulation.setUserAgentOverride`, and no-ops for the `*.enable` calls. Input becomes **synthetic DOM events** built by
+  `window.__fbLegacy.*` (so `isTrusted` is false). Clicks are deferred one tick while a file chooser interception is armed.
+  The host side of the interface is the small `FbLegacyHost` struct in `fb_legacy.h` (`eval`, `set_files`, `chooser`, `screenshot`, `clear_data`, `user_agent`, `stopped`).
+* **File chooser.** There is no `Page.fileChooserOpened` event from the engine. The host watches for the native Open dialog
+  (`#32770`) on the UI thread, hides it, and raises `Page.fileChooserOpened {"backendNodeId":1}` for the runner;
+  `DOM.setFileInputFiles` then fills the dialog's file name box and presses OK (several files only when they share a folder).
+  Setting `<input type=file>` directly through script is tried first where Gecko allows it.
+* **Screenshots.** `Page.captureScreenshot` is the visible area only, encoded as PNG by `src/core/fb_png.c`, whatever `format` is asked.
+* **Threading.** The UI thread owns every COM object. The engine thread (`fbie_cdp`) marshals each operation with
+  `fbw_ui_call`; `Runtime.evaluate` requested from the UI thread itself runs on a worker and completes through a posted
+  `WM_FBW_CALL`, so it can never deadlock the message loop.
+* **Not provided:** the DevTools window, file downloads, closed shadow roots and cross-origin frames. `Navigation.started` / `Navigation.completed` are raised from the browser control's navigation events.
+

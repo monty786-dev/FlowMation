@@ -56,6 +56,17 @@ char *fbw_timestamp(const char *fmt)
     return fb_strdup(buf);
 }
 
+/* fb_buildinfo.h is written by CMake (tools/build.ps1 and CI use it): version, compiler, architecture, date, commit */
+#if defined(__has_include)
+#  if __has_include("fb_buildinfo.h")
+#    include "fb_buildinfo.h"
+#  endif
+#endif
+#ifndef FB_BUILD_INFO
+#  define FB_BUILD_INFO "no build info (not built with CMake)"
+#endif
+const char *fbw_build_info(void) { return FB_BUILD_INFO; }
+
 void fbw_log(const char *fmt, ...)
 {
     char line[1024];

@@ -16,7 +16,7 @@
       D.sheets = r.sheets || []; D.rows = r.rows || []; D.loaded = true;
       clear(sheetSel); sheetSel.appendChild(h('option', { value: '', text: D.sheets.length ? '(first sheet)' : '(n/a)' }));
       D.sheets.forEach(function (s) { sheetSel.appendChild(h('option', { value: s, text: s })); });
-      sheetSel.value = r.sheet && D.sheets.indexOf(r.sheet) >= 0 && sheetSel.dataset.chosen ? r.sheet : (sheetSel.dataset.chosen || '');
+      sheetSel.value = r.sheet && D.sheets.indexOf(r.sheet) >= 0 && sheetSel.getAttribute('data-chosen') ? r.sheet : (sheetSel.getAttribute('data-chosen') || '');
       sheetSel.disabled = isCsv(f);
       draw(r);
     }, function (e) { clear(previewBox); previewBox.appendChild(h('div.err', { text: e.message })); D.loaded = false; drawMap(); });
@@ -108,9 +108,9 @@
     }
     var loopBody;
     if (D.tryOn !== false) {
-      var t = P.newStep('try'); t.name = 'Fill one row'; t.body = inner.concat(statusOk ? [statusOk] : []); t.catch = [];
-      var lg = P.newStep('log'); lg.message = 'Row {{index}} failed: {{error}}'; lg.level = 'warn'; t.catch.push(lg);
-      if (statusErr) t.catch.push(statusErr);
+      var t = P.newStep('try'); t.name = 'Fill one row'; t.body = inner.concat(statusOk ? [statusOk] : []); t['catch'] = [];
+      var lg = P.newStep('log'); lg.message = 'Row {{index}} failed: {{error}}'; lg.level = 'warn'; t['catch'].push(lg);
+      if (statusErr) t['catch'].push(statusErr);
       t.error_var = 'error';
       loopBody = [t];
     } else loopBody = inner.concat(statusOk ? [statusOk] : []);
@@ -155,14 +155,14 @@
       buttons: [{ label: 'Cancel', value: false }, { label: 'Save', primary: true, value: true }] }).then(function (ok) {
       if (!ok) return;
       if (!file.value.trim()) { toast('Enter a file name.', 'err'); return; }
-      Host.call('data.export', { var: name, file: file.value.trim(), sheet: sheet.value || 'Sheet1', start_cell: start.value || 'A1', mode: mode.value, format: fmt.value, headers: true }, 60000).then(function () { toast('Saved ' + basename(file.value), 'ok'); }, function (e) { toast(e.message, 'err'); });
+      Host.call('data.export', { 'var': name, file: file.value.trim(), sheet: sheet.value || 'Sheet1', start_cell: start.value || 'A1', mode: mode.value, format: fmt.value, headers: true }, 60000).then(function () { toast('Saved ' + basename(file.value), 'ok'); }, function (e) { toast(e.message, 'err'); });
     });
   };
 
   /* ------------------------------------------------------------ build */
   Data.init = function (page) {
     fileIn = h('input', { type: 'text', placeholder: 'C:\\Data\\customers.xlsx  or  .csv', spellcheck: 'false' });
-    sheetSel = h('select', h('option', { value: '', text: '(first sheet)' })); sheetSel.addEventListener('change', function () { sheetSel.dataset.chosen = sheetSel.value; load(); });
+    sheetSel = h('select', h('option', { value: '', text: '(first sheet)' })); sheetSel.addEventListener('change', function () { sheetSel.setAttribute('data-chosen', sheetSel.value); load(); });
     rangeIn = h('input', { type: 'text', placeholder: 'A1:F100 (optional)', style: { width: '120px' } });
     headerChk = h('input', { type: 'checkbox', checked: true }); headerChk.onchange = function () { if (D.loaded) { D.header = headerChk.checked; D.map = {}; draw({ total_rows: D.rows.length }); } };
     previewBox = h('div'); mapBox = h('div.col'); outBox = h('div');

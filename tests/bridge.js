@@ -12,6 +12,17 @@ const { spawn } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
 const RUNTIME = fs.readFileSync(path.join(ROOT, 'src/js/fb_runtime.js'), 'utf8');
+const LEGACY_JS = fs.readFileSync(path.join(ROOT, 'src/js/fb_legacy.js'), 'utf8');
+/* FB_LEGACY=1 runs everything the way the Wine/Gecko build does: no DevTools input or handles (fbrun --legacy turns the
+   runner's calls into page scripts) and a page engine that lacks the modern APIs the page scripts must not rely on. */
+const LEGACY = !!process.env.FB_LEGACY;
+const STRIP_MODERN = `(function () {
+  function kill(o, k) { try { delete o[k]; } catch (e) {} try { if (o[k] !== undefined) Object.defineProperty(o, k, { value: undefined, configurable: true }); } catch (e) {} }
+  kill(Element.prototype, 'closest'); kill(Element.prototype, 'matches'); kill(Node.prototype, 'getRootNode');
+  try { Object.defineProperty(Node.prototype, 'isConnected', { get: function () { return undefined; }, configurable: true }); } catch (e) {}
+  ['MouseEvent', 'KeyboardEvent', 'InputEvent', 'DragEvent', 'PointerEvent', 'DataTransfer', 'File', 'CustomEvent'].forEach(function (n) { kill(window, n); });
+  kill(Object, 'assign'); kill(window, 'CSS');
+})();`;
 
 function items(page, per) {
   const out = [];
@@ -149,6 +160,10 @@ async function runFlow(flow, opts) {
   opts = opts || {};
   const e = await env();
   const ctx = await e.browser.newContext({ viewport: { width: 1100, height: 800 } });
+  if (LEGACY) {
+    await ctx.addInitScript({ content: STRIP_MODERN });
+    await ctx.addInitScript({ content: LEGACY_JS });
+  }
   await ctx.addInitScript({ content: RUNTIME });
   const host = new Host(ctx, opts);
   await host.attach(await ctx.newPage());
@@ -156,6 +171,7 @@ async function runFlow(flow, opts) {
   const flowPath = path.join(dir, 'flow.fbflow');
   fs.writeFileSync(flowPath, JSON.stringify(flow));
   const args = [flowPath, '--catalog', path.join(ROOT, 'src/core/catalog.json'), '--base', dir, '--var', 'base=' + e.site.url, '--var', 'dir=' + dir];
+  if (LEGACY) args.push('--legacy');
   const child = spawn(opts.fbrun || process.env.FBRUN || '/tmp/fbrun', args, { stdio: ['pipe', 'pipe', 'pipe'] });
   let stderr = '';
   child.stderr.on('data', d => { stderr += d; });
@@ -178,4 +194,4 @@ async function runFlow(flow, opts) {
            done: () => ctx.close() };
 }
 
-module.exports = { runFlow, env, startSite };
+module.exports = { runFlow, env, startSite, LEGACY, STRIP_MODERN, LEGACY_JS, RUNTIME };

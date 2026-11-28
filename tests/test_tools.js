@@ -1,5 +1,5 @@
 'use strict';
-const { runFlow, env } = require('./bridge');
+const { runFlow, env, LEGACY, STRIP_MODERN, LEGACY_JS } = require('./bridge');
 const fs = require('fs'), path = require('path'), os = require('os');
 const ROOT = path.resolve(__dirname, '..');
 const RUNTIME = fs.readFileSync(path.join(ROOT, 'src/js/fb_runtime.js'), 'utf8');
@@ -10,11 +10,21 @@ const eq = (a, b, m) => check(JSON.stringify(a) === JSON.stringify(b), m + ' —
 
 async function newPage(e) {
   const ctx = await e.browser.newContext({ viewport: { width: 1100, height: 800 } });
+  const msgs = [];
+  if (LEGACY) {                                  /* FB_LEGACY=1: old engine, messages are polled like the Wine host does */
+    await ctx.addInitScript({ content: STRIP_MODERN });
+    await ctx.addInitScript({ content: LEGACY_JS });
+  }
   await ctx.addInitScript({ content: RUNTIME });
   await ctx.addInitScript({ content: TOOLS });
-  const msgs = [];
-  await ctx.exposeFunction('__fbPost', s => { msgs.push(JSON.parse(s)); });
+  if (!LEGACY) await ctx.exposeFunction('__fbPost', s => { msgs.push(JSON.parse(s)); });
   const page = await ctx.newPage();
+  if (LEGACY) {
+    const timer = setInterval(async () => {
+      try { const s = await page.evaluate(() => window.__fbPullTools && window.__fbPullTools()); if (s) JSON.parse(s).forEach(x => msgs.push(x)); } catch (x) { /* navigating */ }
+    }, 20);
+    ctx.on('close', () => clearInterval(timer));
+  }
   return { ctx, page, msgs };
 }
 

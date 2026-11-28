@@ -39,7 +39,11 @@
     reportLayout();
   }
   window.addEventListener('resize', reportLayout);
-  if (window.ResizeObserver) { var ro = new ResizeObserver(reportLayout); ro.observe(el.content); ro.observe(el.panelslot); }
+  if (window.ResizeObserver) { var ro = new ResizeObserver(reportLayout); /* fb-lint-ok: guarded */ ro.observe(el.content); ro.observe(el.panelslot); }
+  else {                                       /* older engines: look for size changes (find bar, bookmarks bar, splitter) twice a second */
+    var lastRects = '';
+    setInterval(function () { var r = JSON.stringify([rectOf(el.content), rectOf(el.panelslot)]); if (r !== lastRects) { lastRects = r; reportLayout(); } }, 400);
+  }
   (function splitter() {
     var drag = false;
     el.split.addEventListener('mousedown', function (e) { drag = true; el.split.classList.add('drag'); e.preventDefault(); });
@@ -245,7 +249,9 @@
     modal({ title: 'About FlowBrowser', body: h('div.col',
       h('div', { style: { fontSize: '18px', fontWeight: 700, color: 'var(--orange)' }, text: 'FlowBrowser ' + S.version }),
       h('div', { text: 'A web automation browser: record, edit and run flows that click, fill, upload and extract — driven by Excel data.' }),
-      h('div.muted.small', { text: 'CAPTCHAs: FlowBrowser detects them and waits for you to solve them (or stops). It does not solve or bypass them.' })) });
+      h('div.muted.small', { text: 'CAPTCHAs: FlowBrowser detects them and waits for you to solve them (or stops). It does not solve or bypass them.' }),
+      S.engine ? h('div.muted.small', { text: 'Browser engine: ' + S.engine }) : null,
+      S.build ? h('div.muted.small', { text: 'Build: ' + S.build }) : null) });
   }
   function openMenu() {
     clear(el.menu);
@@ -310,7 +316,7 @@
   Promise.all([load('settings', {}), load('bookmarks', []), load('history', [])]).then(function (r) {
     S.bookmarks = r[1] || []; S.history = r[2] || [];
     applySettings(r[0]);
-    Host.call('app.info').then(function (i) { S.version = i.version || ''; }, function () { /* ignore */ });
+    Host.call('app.info').then(function (i) { S.version = i.version || ''; S.engine = i.engine || ''; S.build = i.build || ''; }, function () { /* ignore */ });
     Host.send('shell.ready', {});
   });
   window.FbShell = { S: S, resolveInput: resolveInput };

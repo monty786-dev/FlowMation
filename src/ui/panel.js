@@ -68,5 +68,6 @@
     P.setFlow(P.newFlow('New flow'), null);
     Panel.show('flow');
     Host.send('panel.ready', {});
-  }).catch(function (e) { document.body.appendChild(h('pre', { style: { padding: '12px', color: 'crimson' }, text: 'FlowBrowser Studio could not start: ' + (e && e.message) })); });
+    window.__fbBooted = 1;
+  }).then(null, function (e) { if (window.__fbReport) window.__fbReport('Studio start failed: ' + (e && e.message ? e.message : e)); document.body.appendChild(h('pre', { style: { padding: '12px', color: 'crimson' }, text: 'FlowBrowser Studio could not start: ' + (e && e.message) })); });
 })();

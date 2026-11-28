@@ -4,7 +4,7 @@
   var Flow = window.Flow = {};
   var tree, inspector, nameInput, issuesBox, issueBtn, issues = [], dragPath = null, dropMark = null;
 
-  var LABELS = { then: 'Then', else: 'Else', body: 'Do', catch: 'If it fails' };
+  var LABELS = { then: 'Then', 'else': 'Else', body: 'Do', 'catch': 'If it fails' };
 
   /* ------------------------------------------------------------ tree */
   function stepRow(step, path) {
@@ -20,11 +20,11 @@
         e.preventDefault(); e.stopPropagation();
         var r = row.getBoundingClientRect(), before = e.clientY < r.top + r.height / 2;
         clearMark(); row.classList.add(before ? 'drop-before' : 'drop-after'); dropMark = row;
-        row.dataset.before = before ? '1' : '';
+        row.setAttribute('data-before', before ? '1' : '');
       },
       ondrop: function (e) {
         if (dragPath == null) return; e.preventDefault(); e.stopPropagation();
-        var sp = P.splitPath(path), idx = sp.idx + (row.dataset.before ? 0 : 1), from = dragPath; dragPath = null; clearMark();
+        var sp = P.splitPath(path), idx = sp.idx + (row.getAttribute('data-before') ? 0 : 1), from = dragPath; dragPath = null; clearMark();
         P.move(from, sp.arrPath, idx);
       }
     },
@@ -45,8 +45,8 @@
     var out = [row];
     P.nestedKeys(def).forEach(function (k) {
       var ap = path + '.' + k;
-      if (k === 'else' && !(step.else && step.else.length) && P.sel !== path) { /* collapsed empty else */
-        out.push(h('div.nest', h('div.nhead', h('span', { text: LABELS.else }), h('button.btn.sm.flat', { text: '＋ add', onclick: function () { Flow.add({ arrPath: ap, idx: 0 }); } })))); return;
+      if (k === 'else' && !(step['else'] && step['else'].length) && P.sel !== path) { /* collapsed empty else */
+        out.push(h('div.nest', h('div.nhead', h('span', { text: LABELS['else'] }), h('button.btn.sm.flat', { text: '＋ add', onclick: function () { Flow.add({ arrPath: ap, idx: 0 }); } })))); return;
       }
       out.push(nest(step[k] || [], ap, LABELS[k] || k));
     });

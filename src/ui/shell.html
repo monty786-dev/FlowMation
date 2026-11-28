@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<script src="fbboot.js"></script>
 <title>FlowBrowser</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="app.css">
@@ -40,7 +42,7 @@
   #banner .msg { flex: 1; font-weight: 600; }
   #main { flex: 1; display: flex; min-height: 0; }
   #content { flex: 1; min-width: 120px; background: var(--surface2); position: relative; }
-  #content .hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  #content .hint { position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); }
   #split { width: 6px; cursor: col-resize; background: var(--border); flex: none; }
   #split:hover, #split.drag { background: var(--orange); }
   #panelslot { width: 460px; background: var(--bg); flex: none; min-width: 300px; max-width: 80vw; }
@@ -86,6 +88,7 @@
 </div>
 <div id="status"><span class="run" id="srun">Ready</span><span class="grow ell" id="sstep"></span><span id="szoom"></span><span id="sload"></span></div>
 <div id="menu" class="hide"></div>
+<script src="compat.js"></script>
 <script src="common.js"></script>
 <script src="shell.js"></script>
 </body>

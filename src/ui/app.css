@@ -73,8 +73,8 @@ label.chk { display: inline-flex; align-items: center; gap: 7px; cursor: pointer
 .toast { background: var(--head); color: var(--head-text); padding: 8px 12px; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid var(--orange); animation: pop .15s; }
 .toast.err { border-left-color: var(--err); } .toast.ok { border-left-color: var(--ok); }
 @keyframes pop { from { opacity: 0; transform: translateY(8px); } }
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 9000; }
-.modal { background: var(--surface); border-radius: 8px; box-shadow: var(--shadow); width: min(560px, 94vw); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); }
+.modal-bg { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 9000; }
+.modal { background: var(--surface); border-radius: 8px; box-shadow: var(--shadow); width: 560px; max-width: 94vw; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); }
 .modal > header { background: var(--head); color: var(--head-text); padding: 9px 14px; font-weight: 700; display: flex; align-items: center; }
 .modal > .body { padding: 14px; overflow: auto; }
 .modal > footer { padding: 10px 14px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border); background: var(--surface2); }

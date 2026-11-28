@@ -5,11 +5,21 @@
 (function () {
   'use strict';
   var wv = window.chrome && window.chrome.webview;
-  var nextId = 1, pending = {}, listeners = {};
+  /* The Wine / Gecko build has no chrome.webview: fbboot.js recognises that engine (window.__fbHostIE) and the host polls
+     window.__fbPull() for what the UI sends; it delivers messages by calling window.__fbDeliver(json). */
+  var legacy = !wv && (window.__fbHostIE === 1 || /[?&]host=ie(&|$)/.test(String(location.search || '')));
+  var nextId = 1, pending = {}, listeners = {}, outq = [];
+  window.__fbPull = function () {
+    if (!outq.length) return '';
+    var s = '[' + outq.join(',') + ']';
+    outq = [];
+    return s;
+  };
 
   function post(o) {
     var s = JSON.stringify(o);
     if (wv) wv.postMessage(s);
+    else if (legacy) outq.push(s);
     else if (window.__fbMockPost) window.__fbMockPost(s);
   }
 
@@ -38,7 +48,21 @@
     },
     send: function (cmd, data) { var o = { cmd: cmd }; if (data) for (var k in data) o[k] = data[k]; post(o); },
     on: function (ev, fn) { (listeners[ev] = listeners[ev] || []).push(fn); },
-    available: !!wv
+    available: !!wv || legacy,
+    legacy: legacy,
+    /* reads a file that ships with the UI (XMLHttpRequest works in every engine and from file://) */
+    getText: function (url) {
+      return new Promise(function (res, rej) {
+        var x = new XMLHttpRequest();
+        x.open('GET', url, true);
+        x.onreadystatechange = function () {
+          if (x.readyState !== 4) return;
+          if ((x.status >= 200 && x.status < 300) || (x.status === 0 && x.responseText)) res(x.responseText);
+          else rej(new Error('Could not load ' + url + ' (' + x.status + ')'));
+        };
+        try { x.send(); } catch (e) { rej(e); }
+      });
+    }
   };
 
   /* ---------- tiny DOM builder: h('div.cls#id', {attr}, child, ...) ---------- */

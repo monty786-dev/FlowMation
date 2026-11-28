@@ -26,7 +26,7 @@
     var cur = step[p.name] == null ? '' : step[p.name];
     var inp = multi ? h('textarea', { rows: multi === 'code' ? 7 : 3, spellcheck: 'false' }) : h('input', { type: 'text', spellcheck: 'false', autocomplete: 'off' });
     inp.value = typeof cur === 'object' ? JSON.stringify(cur) : String(cur);
-    if (p.default !== undefined && p.kind !== 'bool') inp.placeholder = String(p.default);
+    if (p['default'] !== undefined && p.kind !== 'bool') inp.placeholder = String(p['default']);
     if (mono) inp.classList.add('mono');
     inp.addEventListener('input', function () { onset(inp.value); });
     return multi ? inp : h('div.row', h('div.grow', inp), varButton(inp, onset));
@@ -163,14 +163,14 @@
   function control(step, p, onset, rerender) {
     switch (p.kind) {
       case 'bool': {
-        var cur = step[p.name]; if (cur == null) cur = p.default === true;
+        var cur = step[p.name]; if (cur == null) cur = p['default'] === true;
         var c = h('input', { type: 'checkbox', checked: !!cur });
         c.addEventListener('change', function () { onset(c.checked); });
         return h('label.chk', c, h('span', { text: p.label }));
       }
       case 'enum': {
         var sel = h('select', (p.options || []).map(function (o) { return h('option', { value: o, text: o }); }));
-        sel.value = step[p.name] != null ? step[p.name] : (p.default != null ? p.default : (p.options || [])[0]);
+        sel.value = step[p.name] != null ? step[p.name] : (p['default'] != null ? p['default'] : (p.options || [])[0]);
         sel.addEventListener('change', function () { onset(sel.value); });
         return sel;
       }

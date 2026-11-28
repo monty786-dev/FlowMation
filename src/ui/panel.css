@@ -13,7 +13,7 @@
 .tabbtn.on { color: var(--text); border-bottom-color: var(--orange); background: var(--bg); }
 .tabbtn .i { font-size: 16px; line-height: 18px; } .tabbtn .l { font-size: 11px; }
 #pages { flex: 1; min-height: 0; position: relative; }
-.page { position: absolute; inset: 0; display: none; flex-direction: column; overflow: auto; }
+.page { position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: none; flex-direction: column; overflow: auto; }
 .page.on { display: flex; }
 #pg-flow, #pg-recorder, #pg-log { overflow: hidden; }
 .pad { padding: 10px 12px; }

@@ -7,6 +7,33 @@
   var NS = {};
   function fail(code, msg) { var e = new Error(msg); e.code = code; throw e; }
   function norm(s) { return (s == null ? '' : String(s)).replace(/\s+/g, ' ').trim(); }
+
+  /* The page may be running in an older engine (Wine's MSHTML / Gecko): no isConnected, getRootNode, MouseEvent constructor,
+     DataTransfer constructor, File constructor or Object.assign. These helpers keep every op working there. */
+  function extend(a, b) { if (b) for (var k in b) if (Object.prototype.hasOwnProperty.call(b, k)) a[k] = b[k]; return a; }
+  function connected(el) {
+    if (el.isConnected !== undefined) return el.isConnected;
+    var n = el;
+    for (var i = 0; n && i < 400; i++) { if (n.nodeType === 9) return true; n = n.parentNode || n.host || null; }
+    return false;
+  }
+  function rootOf(n) { if (n.getRootNode) return n.getRootNode(); while (n.parentNode) n = n.parentNode; return n; }
+  function mouseEvent(W, type, init) {
+    try { return new W.MouseEvent(type, init); } catch (e) { /* no constructor */ }
+    var ev = W.document.createEvent('MouseEvents');
+    ev.initMouseEvent(type, !!init.bubbles, !!init.cancelable, W, init.detail || 0, 0, 0, init.clientX || 0, init.clientY || 0, false, false, false, false, init.button || 0, null);
+    return ev;
+  }
+  function newDT(files) {
+    var dt = null;
+    try { dt = new DataTransfer(); } catch (e) { dt = null; }
+    if (dt && dt.items) { if (files) files.forEach(function (f) { dt.items.add(f); }); return dt; }
+    var data = {}, types = files && files.length ? ['Files'] : [];
+    return { effectAllowed: 'uninitialized', dropEffect: 'none', files: files || [], items: [], types: types,
+             setData: function (t, v) { data[t] = String(v); if (types.indexOf(t) < 0) types.push(t); },
+             getData: function (t) { return data[t] === undefined ? '' : data[t]; },
+             clearData: function (t) { if (t) delete data[t]; else data = {}; }, setDragImage: function () { /* nothing */ } };
+  }
   function lc(s) { return norm(s).toLowerCase(); }
   function cut(s, n) { s = norm(s); return s.length > n ? s.slice(0, n) + '…' : s; }
   function win(el) { return (el.ownerDocument && el.ownerDocument.defaultView) || window; }
@@ -126,7 +153,7 @@
   function controlOfLabel(lab) {
     if (lab.control) return lab.control;
     var f = lab.getAttribute('for');
-    if (f) { var r = lab.getRootNode(); var t = (r.getElementById ? r.getElementById(f) : null) || document.getElementById(f); if (t) return t; }
+    if (f) { var r = rootOf(lab); var t = (r.getElementById ? r.getElementById(f) : null) || document.getElementById(f); if (t) return t; }
     return lab.querySelector('input,select,textarea,button,[contenteditable],[role=textbox],[role=combobox]');
   }
 
@@ -227,7 +254,7 @@
   /* ============================================================ geometry */
 
   function visibleBasic(el) {
-    if (!el.isConnected) return false;
+    if (!connected(el)) return false;
     var cs = win(el).getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
     var r = el.getClientRects();
@@ -266,7 +293,7 @@
     var out = { ok: true, visible: vis && r.width > 0 && r.height > 0, x: lx + off.x, y: ly + off.y, w: r.width, h: r.height,
                 tag: el.tagName.toLowerCase(), disabled: !!(el.disabled || el.getAttribute('aria-disabled') === 'true'), covered: null };
     var top = window.top === window ? window : window;
-    out.px = r.left + off.x + top.scrollX; out.py = r.top + off.y + top.scrollY;
+    out.px = r.left + off.x + (top.pageXOffset || 0); out.py = r.top + off.y + (top.pageYOffset || 0);
     if (out.visible) {
       var hit = deepFromPoint(el.ownerDocument, lx, ly);
       if (hit && hit !== el && !el.contains(hit) && !hit.contains(el)) {
@@ -288,7 +315,7 @@
 
   function fire(el, type, init) {
     var W = win(el), ev;
-    try { ev = (type === 'input' && W.InputEvent) ? new W.InputEvent('input', Object.assign({ bubbles: true, composed: true, inputType: 'insertText' }, init || {})) : new W.Event(type, { bubbles: true, composed: true }); }
+    try { ev = (type === 'input' && W.InputEvent) ? new W.InputEvent('input', extend({ bubbles: true, composed: true, inputType: 'insertText' }, init)) : new W.Event(type, { bubbles: true, composed: true }); }
     catch (e) { ev = document.createEvent('Event'); ev.initEvent(type, true, true); }
     el.dispatchEvent(ev);
   }
@@ -374,7 +401,7 @@
   }
 
   function radioGroup(el) {
-    var root = el.form || el.getRootNode(), n = el.name;
+    var root = el.form || rootOf(el), n = el.name;
     if (!n) return [el];
     return Array.prototype.slice.call(root.querySelectorAll('input[type=radio]')).filter(function (r) { return r.name === n; });
   }
@@ -437,10 +464,10 @@
     var el = find(a);
     el.scrollIntoView({ block: 'center', inline: 'center' });
     var n = a.count || 1, W = win(el);
-    if (a.button === 'right') { el.dispatchEvent(new W.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, view: W })); return { ok: true }; }
-    if (a.button === 'middle') { el.dispatchEvent(new W.MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1, view: W })); return { ok: true }; }
+    if (a.button === 'right') { el.dispatchEvent(mouseEvent(W, 'contextmenu', { bubbles: true, cancelable: true, button: 2, view: W })); return { ok: true }; }
+    if (a.button === 'middle') { el.dispatchEvent(mouseEvent(W, 'auxclick', { bubbles: true, cancelable: true, button: 1, view: W })); return { ok: true }; }
     for (var i = 0; i < n; i++) el.click();
-    if (n > 1) el.dispatchEvent(new W.MouseEvent('dblclick', { bubbles: true, cancelable: true, detail: 2, view: W }));
+    if (n > 1) el.dispatchEvent(mouseEvent(W, 'dblclick', { bubbles: true, cancelable: true, detail: 2, view: W }));
     return { ok: true };
   };
 
@@ -759,19 +786,22 @@
   function b64File(f) {
     var bin = atob(f.b64), arr = new Uint8Array(bin.length);
     for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    return new File([arr], f.name, { type: f.type || 'application/octet-stream' });
+    var type = f.type || 'application/octet-stream';
+    try { return new File([arr], f.name, { type: type }); } catch (e) { /* engines without the File constructor */ }
+    var b = new Blob([arr], { type: type });
+    try { b.name = f.name; b.lastModified = Date.now(); } catch (e2) { /* ignore */ }
+    return b;
   }
 
   function dragEvt(W, type, dt, x, y) {
     var ev;
-    try { ev = new W.DragEvent(type, { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, dataTransfer: dt, view: W }); }
-    catch (e) { ev = new W.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, view: W }); try { ev.dataTransfer = dt; } catch (e2) { /* ignore */ } }
+    try { ev = new W.DragEvent(type, { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, dataTransfer: dt, view: W }); if (!ev.dataTransfer) throw new Error('no dataTransfer'); }
+    catch (e) { ev = mouseEvent(W, type, { bubbles: true, cancelable: true, clientX: x, clientY: y, view: W }); try { ev.dataTransfer = dt; } catch (e2) { try { Object.defineProperty(ev, 'dataTransfer', { value: dt }); } catch (e3) { /* ignore */ } } }
     return ev;
   }
 
   ops.drop_files = function (a) {
-    var el = find(a), files = a.files.map(b64File), dt = new DataTransfer();
-    files.forEach(function (f) { dt.items.add(f); });
+    var el = find(a), files = a.files.map(b64File), dt = newDT(files);
     var r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, W = win(el);
     ['dragenter', 'dragover', 'drop'].forEach(function (t) { el.dispatchEvent(dragEvt(W, t, dt, x, y)); });
     var inp = nearFileInput(el, false);                             /* many widgets only listen on their <input> */
@@ -782,7 +812,7 @@
   };
 
   ops.html5_drag = function (a) {
-    var src = find({ selector: a.selector }), dst = find({ selector: a.target }), dt = new DataTransfer(), W = win(src);
+    var src = find({ selector: a.selector }), dst = find({ selector: a.target }), dt = newDT(null), W = win(src);
     src.scrollIntoView({ block: 'center' });
     var s = src.getBoundingClientRect(), d = dst.getBoundingClientRect();
     var sx = s.left + s.width / 2, sy = s.top + s.height / 2, dx = d.left + d.width / 2, dy = d.top + d.height / 2;
@@ -832,7 +862,7 @@
       var fn = ops[op];
       if (!fn) return { ok: false, code: 'unknown_op', error: 'Unknown page operation: ' + op };
       var r = fn(args || {});
-      return r && typeof r.then === 'function' ? r.catch(errToResult) : r;
+      return r && typeof r.then === 'function' ? r.then(null, errToResult) : r;
     } catch (e) { return errToResult(e); }
   };
 

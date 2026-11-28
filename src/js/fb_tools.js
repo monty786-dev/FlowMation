@@ -20,28 +20,41 @@
     } catch (e) { /* host gone */ }
   }
 
-  /* frames: payloads travel upward through parent.postMessage; every level prefixes its iframe's selector */
+  /* frames: payloads travel upward, every level prefixes its iframe's selector. Same-origin frames call the parent's
+     tools directly (works in every engine); otherwise parent.postMessage carries them. */
   function send(payload) {
     if (IS_TOP) { hostPost(payload); return; }
+    try {
+      var up = window.parent.__fb && window.parent.__fb.tools && window.parent.__fb.tools._up;
+      if (up) { up(JSON.stringify(payload), window); return; }          /* a string: no object crosses script engines */
+    } catch (e0) { /* cross-origin parent: fall back to postMessage */ }
     try { window.parent.postMessage({ __fbUp: 1, payload: payload }, '*'); } catch (e) { /* ignore */ }
   }
 
   function frameElementFor(source) {
     var fr = document.querySelectorAll('iframe,frame');
-    for (var i = 0; i < fr.length; i++) if (fr[i].contentWindow === source) return fr[i];
+    for (var i = 0; i < fr.length; i++) {
+      if (fr[i].contentWindow === source) return fr[i];
+      try { if (source && source.document && fr[i].contentDocument === source.document) return fr[i]; } catch (e) { /* cross-origin */ }
+    }
     return null;
   }
 
   function broadcast(cmd) {
     var fr = document.querySelectorAll('iframe,frame');
-    for (var i = 0; i < fr.length; i++) { try { fr[i].contentWindow.postMessage({ __fbCmd: 1, cmd: cmd }, '*'); } catch (e) { /* ignore */ } }
+    for (var i = 0; i < fr.length; i++) {
+      try {
+        var ft = fr[i].contentWindow.__fb && fr[i].contentWindow.__fb.tools;
+        if (ft && ft.cmd) { ft.cmd(JSON.stringify(cmd)); continue; }
+      } catch (e0) { /* cross-origin */ }
+      try { fr[i].contentWindow.postMessage({ __fbCmd: 1, cmd: cmd }, '*'); } catch (e) { /* ignore */ }
+    }
   }
 
-  window.addEventListener('message', function (ev) {
-    var d = ev.data;
-    if (!d || typeof d !== 'object') return;
-    if (d.__fbUp && d.payload) {
-      var el = frameElementFor(ev.source), p = d.payload;
+  function onUp(p, source) {
+    if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { return; } }
+    {
+      var el = frameElementFor(source);
       if (el) {
         var sel = bestSelector(el);
         var prefix = sel.selector + ' >> ';
@@ -50,9 +63,14 @@
         if (p.step && p.step.target) p.step.target = prefix + p.step.target;
       } else { p.cross_origin_frame = true; }
       send(p);
-    } else if (d.__fbCmd && ev.source === window.parent && d.cmd) {
-      runCmd(d.cmd);
     }
+  }
+
+  window.addEventListener('message', function (ev) {
+    var d = ev.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.__fbUp && d.payload) onUp(d.payload, ev.source);
+    else if (d.__fbCmd && ev.source === window.parent && d.cmd) runCmd(d.cmd);
   });
 
   function runCmd(cmd) {
@@ -431,7 +449,7 @@
     function flushFill() {
       if (!pendingFill) return;
       var el = pendingFill; pendingFill = null; clearTimeout(timer);
-      if (!el.isConnected) return;
+      if (el.isConnected === false) return;
       var step, secret = isSecret(el);
       var key = 'fill:' + bestSelector(el).selector;
       if (secret) {
@@ -611,7 +629,8 @@
       if (name === 'test') return JSON.stringify(testSelector(a.selector));
       return JSON.stringify({ ok: false, error: 'unknown' });
     },
-    announce: announce
+    announce: announce,
+    _up: onUp
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', announce); else announce();

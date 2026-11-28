@@ -1,4 +1,4 @@
-name: Build FlowBrowser
+name: Build FlowBrowserv
 
 on:
   push:

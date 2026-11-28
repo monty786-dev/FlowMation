@@ -72,7 +72,9 @@ for (const f of fs.readdirSync(path.join(ROOT, 'src/ui')).filter(f => f.endsWith
   const re = /<script>([\s\S]*?)<\/script>/g; let m, n = 0;
   while ((m = re.exec(html))) { n++; try { acorn.parse(m[1], { ecmaVersion: 5 }); check(true, f + ' inline script ' + n); } catch (e) { check(false, f + ' inline script ' + n + ' is not ES5: ' + e.message); } }
   /* every UI page that runs scripts loads compat.js first */
-  if (/<script src=/.test(html)) check(/<script src="compat\.js"><\/script>[\s\S]*<script src="common\.js">/.test(html), f + ' loads compat.js before common.js');
+  if (/<script src="common\.js"/.test(html)) check(/<script src="compat\.js"><\/script>[\s\S]*<script src="common\.js">/.test(html), f + ' loads compat.js before common.js');
+  /* the start-up guard comes first, right after the X-UA-Compatible meta tag (IE ignores that tag when something else precedes it) */
+  check(/<meta http-equiv="X-UA-Compatible" content="IE=edge">\s*<script src="fbboot\.js"><\/script>/.test(html), f + ' loads fbboot.js right after the X-UA-Compatible meta tag');
 }
 console.log(`${total} checks, ${fails} failed`);
 process.exit(fails ? 1 : 0);

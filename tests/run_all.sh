@@ -28,6 +28,7 @@ run data_flow python3 tests/test_data_flow.py "$OUT/fbrun"
 if [ "$1" = "--web" ]; then
   export FBRUN="$PWD/$OUT/fbrun"
   echo "== scripts stay inside ES5 (the Wine / Gecko build runs them in JScript)"; run lint node tests/lint_es5.js
+  echo "== start-up guard for the Wine / Gecko UI (white screen -> visible message)"; run boot node tests/test_boot.js
   echo "== page tools"; run tools node tests/test_tools.js
   echo "== web flows (real Chromium over CDP)"; run web_flow node tests/test_web_flow.js
   echo "== UI (mock host)"; run ui node tests/test_ui.js
